@@ -55,7 +55,19 @@
 
         <footer>
             <p>More games coming soon!</p>
+            <p class="visitor-counter">Visitors: <span id="visits">...</span></p>
         </footer>
     </div>
+    <script>
+        // Simple visitor counter using CountAPI
+        fetch('https://api.countapi.xyz/hit/juliens-fun-games/visits')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('visits').textContent = data.value;
+            })
+            .catch(error => {
+                document.getElementById('visits').textContent = '---';
+            });
+    </script>
 </body>
 </html>
