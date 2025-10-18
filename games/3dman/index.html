@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Stick Man Jump Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100vh;
+            display: block;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 10;
+        }
+
+        #altitudeMeter {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        #altitude {
+            font-size: 36px;
+            font-weight: bold;
+            color: #00ff00;
+        }
+
+        #maxAltitude {
+            font-size: 18px;
+            color: #ffff00;
+            margin-top: 5px;
+        }
+
+        #perfectJump {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffff00;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div id="altitudeMeter">
+            <div>Altitude: <span id="altitude">0</span>m</div>
+            <div id="maxAltitude">Max: <span id="maxAlt">0</span>m</div>
+            <div style="margin-top: 10px; color: #ffd700;">Coins: <span id="coins">100</span></div>
+            <div style="margin-top: 5px; color: #00ff00;">Trampolines: <span id="trampolineCount">1</span></div>
+            <div style="margin-top: 5px; color: #ff69b4;">Backflip: <span id="backflipStatus">✗</span></div>
+            <div style="margin-top: 5px; color: #00ccff;">Double Jump: <span id="doubleJumpStatus">✗</span></div>
+        </div>
+    </div>
+
+    <div id="shopPrompt" style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; font-weight: bold; color: #ffffff; background: rgba(0, 0, 0, 0.7); padding: 20px 30px; border-radius: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); opacity: 0; pointer-events: none; z-index: 15; text-align: center;">
+        <div style="margin-bottom: 8px;">Press E to buy Trampoline<br>
+        <span style="color: #ffd700; font-size: 18px;">Cost: 50 coins</span></div>
+        <div style="margin-bottom: 8px;">Press B to buy Backflip<br>
+        <span style="color: #ff69b4; font-size: 18px;">Cost: 100 coins | 3x Jump Power</span></div>
+        <div>Press J to buy Double Jump<br>
+        <span style="color: #00ccff; font-size: 18px;">Cost: 150 coins | Jump in mid-air!</span></div>
+    </div>
+
+    <div id="placementPrompt" style="position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-weight: bold; color: #00ff00; background: rgba(0, 0, 0, 0.8); padding: 20px 30px; border-radius: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); opacity: 0; pointer-events: none; z-index: 15; text-align: center;">
+        PLACEMENT MODE<br>
+        <span style="color: #ffffff; font-size: 18px;">Arrow Keys: Move | Enter: Place | Esc: Cancel</span>
+    </div>
+
+    <div id="rocketTimer" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: bold; color: #00ff00; text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8); opacity: 0; pointer-events: none; z-index: 20;">
+        <span id="timerValue">30</span>
+    </div>
+
+    <div id="perfectJump">PERFECT JUMP!</div>
+
+    <div id="instructions">
+        P1: Arrow Keys + Space | P2: WASD + Shift | E: Buy at Shop
+    </div>
+
+    <button id="commandsButton" style="position: absolute; top: 20px; right: 20px; background: rgba(0, 0, 0, 0.8); color: #00ff00; border: 3px solid rgba(0, 255, 0, 0.7); padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; z-index: 15; font-family: 'Courier New', monospace; box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);">
+        COMMANDS
+    </button>
+
+    <button id="twoPlayerButton" style="position: absolute; top: 80px; right: 20px; background: rgba(0, 0, 0, 0.8); color: #ff69b4; border: 3px solid rgba(255, 105, 180, 0.7); padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; z-index: 15; font-family: 'Courier New', monospace; box-shadow: 0 0 15px rgba(255, 105, 180, 0.4);">
+        2 PLAYER
+    </button>
+
+    <button id="musicButton" style="position: absolute; top: 140px; right: 20px; background: rgba(0, 0, 0, 0.8); color: #ffaa00; border: 3px solid rgba(255, 170, 0, 0.7); padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; z-index: 15; font-family: 'Courier New', monospace; box-shadow: 0 0 15px rgba(255, 170, 0, 0.4);">
+        🎵 STYLE 1
+    </button>
+
+    <div id="commandsList" style="position: absolute; top: 70px; right: 20px; background: rgba(0, 0, 0, 0.95); color: #00ff00; border: 3px solid rgba(0, 255, 0, 0.7); padding: 20px 25px; border-radius: 10px; z-index: 15; font-family: 'Courier New', monospace; display: none; box-shadow: 0 0 20px rgba(0, 255, 0, 0.4); max-width: 400px;">
+        <div style="font-size: 20px; font-weight: bold; margin-bottom: 15px; text-align: center; color: #ffff00;">AVAILABLE COMMANDS</div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/tp [altitude]</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Teleport to specified altitude</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /tp 1600</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/give coin [amount]</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Give yourself coins</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /give coin 500</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/jumpboost [multiplier]</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Boost jump power</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /jumpboost 5</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/food</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Equip pizza hat</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /food</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/tick [option]</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Control game speed</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Options: freeze, slow, normal, fast</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/fly</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Toggle fly mode (Space: up, D: down)</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /fly</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/speed [multiplier]</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Control movement speed</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /speed 3</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/summon</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Summon an NPC</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /summon</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/rocket</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Summon a rocket</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /rocket</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/ai</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Spawn AI player that tries to play</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /ai</div>
+        </div>
+        <div style="margin-bottom: 10px; padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/size [option]</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Change player size</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Options: small, big, normal</div>
+        </div>
+        <div style="padding: 10px; background: rgba(0, 255, 0, 0.1); border-radius: 5px;">
+            <div style="font-weight: bold; color: #ffff00;">/everything [instruction]</div>
+            <div style="font-size: 14px; color: #aaffaa; margin-top: 3px;">Tell AI what to do</div>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Example: /everything jump, /everything follow, /everything go to house</div>
+        </div>
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid rgba(0, 255, 0, 0.3); font-size: 14px; text-align: center; color: #aaffaa;">
+            Press "/" to open command bar
+        </div>
+    </div>
+
+    <div id="commandBar" style="position: absolute; top: 100px; left: 50%; transform: translateX(-50%); display: none; z-index: 100; background: rgba(0, 0, 0, 0.95); padding: 20px 30px; border-radius: 10px; border: 4px solid rgba(0, 255, 0, 0.8); box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);">
+        <div style="color: #00ff00; font-weight: bold; font-size: 18px; margin-bottom: 10px; text-align: center;">COMMAND BAR</div>
+        <input type="text" id="commandInput" placeholder="Enter command (e.g., /tp 1600)" style="padding: 12px 18px; font-size: 18px; width: 450px; background: rgba(20, 20, 20, 1); color: #00ff00; border: 3px solid rgba(0, 255, 0, 0.7); border-radius: 5px; outline: none; font-family: 'Courier New', monospace; font-weight: bold;" />
+    </div>
+
+    <div id="commandMessage" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-weight: bold; color: #00ff00; background: rgba(0, 0, 0, 0.8); padding: 20px 30px; border-radius: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); opacity: 0; pointer-events: none; z-index: 25; transition: opacity 0.3s;"></div>
+
+    <div id="dialogueBox" style="position: absolute; top: 60%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.9); color: #ffffff; border: 4px solid rgba(0, 100, 255, 0.8); padding: 25px 35px; border-radius: 12px; z-index: 30; display: none; box-shadow: 0 0 25px rgba(0, 100, 255, 0.6); min-width: 400px; text-align: center;">
+        <div id="dialogueQuestion" style="font-size: 22px; font-weight: bold; margin-bottom: 20px; color: #00ccff;">Do you like jumping?</div>
+        <div style="display: flex; justify-content: center; gap: 20px;">
+            <button id="yesButton" style="background: rgba(0, 200, 0, 0.8); color: white; border: 3px solid rgba(0, 255, 0, 0.9); padding: 12px 40px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);">:]</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

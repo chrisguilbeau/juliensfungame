@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Fighter - Tests</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #0f0;
+            margin: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            border: 1px solid #0f0;
+            padding: 15px;
+        }
+        .test-pass {
+            color: #0f0;
+        }
+        .test-fail {
+            color: #f00;
+        }
+        .test-result {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>3D Space Fighter - Unit Tests</h1>
+    <div id="test-results"></div>
+
+    <script src="vector3d.js"></script>
+    <script src="ship.js"></script>
+    <script>
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+
+            addTest(name, testFunc) {
+                this.tests.push({ name, testFunc });
+            }
+
+            runTests() {
+                const resultsDiv = document.getElementById('test-results');
+                let passCount = 0;
+                let totalTests = this.tests.length;
+
+                this.tests.forEach(test => {
+                    try {
+                        const result = test.testFunc();
+                        if (result) {
+                            this.logResult(test.name, true, resultsDiv);
+                            passCount++;
+                        } else {
+                            this.logResult(test.name, false, resultsDiv, 'Test returned false');
+                        }
+                    } catch (error) {
+                        this.logResult(test.name, false, resultsDiv, error.message);
+                    }
+                });
+
+                const summary = document.createElement('div');
+                summary.className = 'test-section';
+                summary.innerHTML = `<h2>Test Summary: ${passCount}/${totalTests} tests passed</h2>`;
+                summary.style.color = passCount === totalTests ? '#0f0' : '#f00';
+                resultsDiv.appendChild(summary);
+            }
+
+            logResult(testName, passed, container, error = '') {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-result';
+                testDiv.innerHTML = `
+                    <span class="${passed ? 'test-pass' : 'test-fail'}">
+                        ${passed ? '✓' : '✗'} ${testName}
+                        ${error ? ` - ${error}` : ''}
+                    </span>
+                `;
+                container.appendChild(testDiv);
+            }
+
+            assert(condition, message = 'Assertion failed') {
+                if (!condition) {
+                    throw new Error(message);
+                }
+                return true;
+            }
+
+            assertAlmostEqual(a, b, tolerance = 0.001, message = 'Values not approximately equal') {
+                if (Math.abs(a - b) > tolerance) {
+                    throw new Error(`${message}: ${a} != ${b} (tolerance: ${tolerance})`);
+                }
+                return true;
+            }
+        }
+
+        const runner = new TestRunner();
+
+        // Vector3D Tests
+        runner.addTest('Vector3D Creation', () => {
+            const v = new Vector3D(1, 2, 3);
+            return runner.assert(v.x === 1 && v.y === 2 && v.z === 3, 'Vector components not set correctly');
+        });
+
+        runner.addTest('Vector3D Addition', () => {
+            const v1 = new Vector3D(1, 2, 3);
+            const v2 = new Vector3D(4, 5, 6);
+            const result = v1.add(v2);
+            return runner.assert(result.x === 5 && result.y === 7 && result.z === 9, 'Vector addition failed');
+        });
+
+        runner.addTest('Vector3D Magnitude', () => {
+            const v = new Vector3D(3, 4, 0);
+            return runner.assertAlmostEqual(v.magnitude(), 5, 0.001, 'Vector magnitude calculation failed');
+        });
+
+        runner.addTest('Vector3D Normalization', () => {
+            const v = new Vector3D(3, 4, 0);
+            const normalized = v.normalize();
+            return runner.assertAlmostEqual(normalized.magnitude(), 1, 0.001, 'Vector normalization failed');
+        });
+
+        runner.addTest('Vector3D Rotation Z', () => {
+            const v = new Vector3D(1, 0, 0);
+            const rotated = v.rotateZ(Math.PI / 2);
+            return runner.assertAlmostEqual(rotated.x, 0, 0.001, 'Z rotation failed') &&
+                   runner.assertAlmostEqual(rotated.y, 1, 0.001, 'Z rotation failed');
+        });
+
+        // Ship Tests
+        runner.addTest('Ship Creation', () => {
+            const ship = new Ship(10, 20, 30, 1);
+            return runner.assert(ship.position.x === 10 && ship.position.y === 20 && ship.position.z === 30, 'Ship position not set correctly') &&
+                   runner.assert(ship.lives === 5, 'Ship lives not set correctly') &&
+                   runner.assert(ship.playerId === 1, 'Ship player ID not set correctly');
+        });
+
+        runner.addTest('Ship Thrust Physics', () => {
+            const ship = new Ship(0, 0, 0, 1);
+            const initialVelocity = ship.velocity.magnitude();
+            ship.thrust = 1;
+            ship.update();
+            const finalVelocity = ship.velocity.magnitude();
+            return runner.assert(finalVelocity > initialVelocity, 'Thrust should increase velocity');
+        });
+
+        runner.addTest('Ship Rotation', () => {
+            const ship = new Ship(0, 0, 0, 1);
+            const initialRotation = ship.rotation.z;
+            ship.rotation.z += ship.rotationSpeed;
+            return runner.assert(ship.rotation.z > initialRotation, 'Ship rotation should change');
+        });
+
+        runner.addTest('Ship Friction', () => {
+            const ship = new Ship(0, 0, 0, 1);
+            ship.velocity = new Vector3D(5, 0, 0);
+            const initialSpeed = ship.velocity.magnitude();
+            ship.update();
+            const finalSpeed = ship.velocity.magnitude();
+            return runner.assert(finalSpeed < initialSpeed, 'Friction should reduce velocity');
+        });
+
+        runner.addTest('Ship Position Wrapping', () => {
+            const ship = new Ship(250, 0, 0, 1);
+            ship.update();
+            return runner.assert(ship.position.x < 0, 'Ship should wrap around boundary');
+        });
+
+        runner.addTest('Ship Projectile Creation', () => {
+            const ship = new Ship(0, 0, 0, 1);
+            const initialProjectiles = ship.projectiles.length;
+            ship.fire();
+            return runner.assert(ship.projectiles.length > initialProjectiles, 'Firing should create projectile');
+        });
+
+        runner.addTest('Ship Fire Delay', () => {
+            const ship = new Ship(0, 0, 0, 1);
+            ship.fire();
+            const projectileCount = ship.projectiles.length;
+            ship.fire();
+            return runner.assert(ship.projectiles.length === projectileCount, 'Fire delay should prevent immediate second shot');
+        });
+
+        runner.addTest('Ship Damage System', () => {
+            const ship = new Ship(0, 0, 0, 1);
+            const initialLives = ship.lives;
+            const destroyed = ship.takeDamage();
+            return runner.assert(ship.lives === initialLives - 1, 'Damage should reduce lives') &&
+                   runner.assert(!destroyed, 'Ship should not be destroyed with remaining lives');
+        });
+
+        runner.addTest('Ship Destruction', () => {
+            const ship = new Ship(0, 0, 0, 1);
+            ship.lives = 1;
+            const destroyed = ship.takeDamage();
+            return runner.assert(destroyed, 'Ship should be destroyed when lives reach 0');
+        });
+
+        runner.addTest('Ship Collision Detection', () => {
+            const ship1 = new Ship(0, 0, 0, 1);
+            const ship2 = new Ship(5, 0, 0, 2);
+            const distance = ship1.distanceTo(ship2);
+            return runner.assertAlmostEqual(distance, 5, 0.001, 'Distance calculation failed');
+        });
+
+        // Projectile Tests
+        runner.addTest('Projectile Creation', () => {
+            const pos = new Vector3D(0, 0, 0);
+            const vel = new Vector3D(1, 0, 0);
+            const projectile = new Projectile(pos, vel, 1);
+            return runner.assert(projectile.position.x === 0 && projectile.velocity.x === 1, 'Projectile creation failed') &&
+                   runner.assert(projectile.owner === 1, 'Projectile owner not set');
+        });
+
+        runner.addTest('Projectile Movement', () => {
+            const pos = new Vector3D(0, 0, 0);
+            const vel = new Vector3D(1, 0, 0);
+            const projectile = new Projectile(pos, vel, 1);
+            const initialX = projectile.position.x;
+            projectile.update();
+            return runner.assert(projectile.position.x > initialX, 'Projectile should move');
+        });
+
+        runner.addTest('Projectile Expiration', () => {
+            const pos = new Vector3D(0, 0, 0);
+            const vel = new Vector3D(1, 0, 0);
+            const projectile = new Projectile(pos, vel, 1);
+            projectile.life = 1;
+            projectile.update();
+            return runner.assert(projectile.isExpired(), 'Projectile should expire when life reaches 0');
+        });
+
+        // Renderer Tests
+        runner.addTest('Renderer Creation', () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            const renderer = new Renderer3D(canvas);
+            return runner.assert(renderer.width === 640 && renderer.height === 480, 'Renderer dimensions not set correctly');
+        });
+
+        runner.addTest('3D Projection', () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            const renderer = new Renderer3D(canvas);
+            const point3D = new Vector3D(0, 0, 100);
+            const projected = renderer.project3D(point3D);
+            return runner.assert(projected.x === 320 && projected.y === 240, '3D projection failed');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            runner.runTests();
+        });
+    </script>
+</body>
+</html>

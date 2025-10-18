@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Fighter - Working Version</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="player1-section">
+            <div class="hud">
+                <div class="life-meter">
+                    <span>Player 1 Lives:</span>
+                    <div class="lives">
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                    </div>
+                </div>
+                <div class="controls-info">
+                    <div>WASD: Move | Q/E: Roll | R/F: Pitch | T/G: Yaw | Space: Fire</div>
+                </div>
+            </div>
+            <canvas id="player1-canvas" width="640" height="480"></canvas>
+            <div class="crosshair" id="crosshair1">+</div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="player2-section">
+            <div class="hud">
+                <div class="life-meter">
+                    <span>Player 2 Lives:</span>
+                    <div class="lives">
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                    </div>
+                </div>
+                <div class="controls-info">
+                    <div>Arrows: Move | ,/.: Roll | /Shift: Pitch | []: Yaw | Enter: Fire</div>
+                </div>
+            </div>
+            <canvas id="player2-canvas" width="640" height="480"></canvas>
+            <div class="crosshair" id="crosshair2">+</div>
+        </div>
+    </div>
+    
+    <div class="game-over" id="gameOver" style="display: none;">
+        <h2 id="winnerText"></h2>
+        <button onclick="restartGame()">Play Again</button>
+    </div>
+    
+    <script src="vector3d.js"></script>
+    <script src="ship.js"></script>
+    <script src="controls.js"></script>
+    <script src="game-fixed.js"></script>
+</body>
+</html>

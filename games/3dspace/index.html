@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Fighter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="player1-section">
+            <div class="hud">
+                <div class="hud-row">
+                    <div class="health-gauge">
+                        <span>HEALTH:</span>
+                        <div class="health-bar">
+                            <div class="health-fill" id="health1" style="width: 100%"></div>
+                        </div>
+                        <span id="lives1">5</span>
+                    </div>
+                    <div class="controls-info">
+                        <div>WASD: Move | Q/E: Roll | R/F: Pitch | T/G: Yaw | Space: Fire</div>
+                    </div>
+                </div>
+                <div class="hud-row">
+                    <div class="debug-panel" id="debug1">
+                        <div>POS: X=<span id="pos1x">0</span> Y=<span id="pos1y">0</span> Z=<span id="pos1z">0</span></div>
+                        <div>ROT: X=<span id="rot1x">0</span> Y=<span id="rot1y">0</span> Z=<span id="rot1z">0</span></div>
+                        <div>VEL: <span id="vel1">0</span> | THRUST: <span id="thrust1">0</span></div>
+                    </div>
+                    <div class="debug-panel">
+                        <div>ENEMY DISTANCE: <span id="distance1">0</span></div>
+                        <div>ENEMY BEARING: <span id="bearing1">0°</span></div>
+                        <div>KEYS: <span id="keys1">NONE</span></div>
+                    </div>
+                </div>
+            </div>
+            <canvas id="player1-canvas" width="640" height="480"></canvas>
+            <div class="crosshair" id="crosshair1">+</div>
+            <div class="targeting-arrow" id="arrow1">→</div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="player2-section">
+            <div class="hud">
+                <div class="hud-row">
+                    <div class="health-gauge">
+                        <span>HEALTH:</span>
+                        <div class="health-bar">
+                            <div class="health-fill" id="health2" style="width: 100%"></div>
+                        </div>
+                        <span id="lives2">5</span>
+                    </div>
+                    <div class="controls-info">
+                        <div>Arrows: Move | ,/.: Roll | /Shift: Pitch | []: Yaw | Enter: Fire</div>
+                    </div>
+                </div>
+                <div class="hud-row">
+                    <div class="debug-panel" id="debug2">
+                        <div>POS: X=<span id="pos2x">0</span> Y=<span id="pos2y">0</span> Z=<span id="pos2z">0</span></div>
+                        <div>ROT: X=<span id="rot2x">0</span> Y=<span id="rot2y">0</span> Z=<span id="rot2z">0</span></div>
+                        <div>VEL: <span id="vel2">0</span> | THRUST: <span id="thrust2">0</span></div>
+                    </div>
+                    <div class="debug-panel">
+                        <div>ENEMY DISTANCE: <span id="distance2">0</span></div>
+                        <div>ENEMY BEARING: <span id="bearing2">0°</span></div>
+                        <div>KEYS: <span id="keys2">NONE</span></div>
+                    </div>
+                </div>
+            </div>
+            <canvas id="player2-canvas" width="640" height="480"></canvas>
+            <div class="crosshair" id="crosshair2">+</div>
+            <div class="targeting-arrow" id="arrow2">→</div>
+        </div>
+    </div>
+    
+    <div class="game-over" id="gameOver" style="display: none;">
+        <h2 id="winnerText"></h2>
+        <button onclick="restartGame()">Play Again</button>
+    </div>
+    
+    <script src="vector3d.js"></script>
+    <script src="ship.js"></script>
+    <script src="controls.js"></script>
+    <script src="game-fixed.js"></script>
+</body>
+</html>

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Fighter - Simple Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .player-section {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .divider {
+            width: 2px;
+            background-color: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        .hud {
+            height: 100px;
+            background-color: #001100;
+            border-bottom: 1px solid #0f0;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        .debug-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            height: 100%;
+        }
+
+        .debug-panel {
+            background-color: #002200;
+            border: 1px solid #0f0;
+            padding: 5px;
+            overflow: hidden;
+        }
+
+        canvas {
+            background-color: #000;
+            flex: 1;
+        }
+
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #0f0;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #0f0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .player2-section .hud {
+            background-color: #110011;
+            border-bottom-color: #f0f;
+        }
+
+        .player2-section .debug-panel {
+            background-color: #220022;
+            border-color: #f0f;
+        }
+
+        .player2-section .crosshair {
+            color: #f0f;
+            text-shadow: 0 0 10px #f0f;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="player-section player1-section">
+            <div class="hud">
+                <div class="debug-info">
+                    <div class="debug-panel">
+                        <div>PLAYER 1</div>
+                        <div>POS: X=<span id="p1x">0</span> Y=<span id="p1y">0</span> Z=<span id="p1z">0</span></div>
+                        <div>VEL: <span id="p1vel">0</span></div>
+                        <div>THRUST: <span id="p1thrust">0</span></div>
+                    </div>
+                    <div class="debug-panel">
+                        <div>CONTROLS: WASD</div>
+                        <div>KEYS: <span id="p1keys">NONE</span></div>
+                        <div>DISTANCE: <span id="p1dist">0</span></div>
+                        <div>STATUS: <span id="p1status">READY</span></div>
+                    </div>
+                </div>
+            </div>
+            <canvas id="canvas1" width="640" height="480"></canvas>
+            <div class="crosshair">+</div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="player-section player2-section">
+            <div class="hud">
+                <div class="debug-info">
+                    <div class="debug-panel">
+                        <div>PLAYER 2</div>
+                        <div>POS: X=<span id="p2x">0</span> Y=<span id="p2y">0</span> Z=<span id="p2z">0</span></div>
+                        <div>VEL: <span id="p2vel">0</span></div>
+                        <div>THRUST: <span id="p2thrust">0</span></div>
+                    </div>
+                    <div class="debug-panel">
+                        <div>CONTROLS: ARROWS</div>
+                        <div>KEYS: <span id="p2keys">NONE</span></div>
+                        <div>DISTANCE: <span id="p2dist">0</span></div>
+                        <div>STATUS: <span id="p2status">READY</span></div>
+                    </div>
+                </div>
+            </div>
+            <canvas id="canvas2" width="640" height="480"></canvas>
+            <div class="crosshair">+</div>
+        </div>
+    </div>
+
+    <script>
+        console.log('Starting simple 3D space game...');
+
+        // Vector3D class
+        class Vector3D {
+            constructor(x = 0, y = 0, z = 0) {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+            }
+
+            add(other) {
+                return new Vector3D(this.x + other.x, this.y + other.y, this.z + other.z);
+            }
+
+            subtract(other) {
+                return new Vector3D(this.x - other.x, this.y - other.y, this.z - other.z);
+            }
+
+            multiply(scalar) {
+                return new Vector3D(this.x * scalar, this.y * scalar, this.z * scalar);
+            }
+
+            magnitude() {
+                return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+            }
+
+            normalize() {
+                const mag = this.magnitude();
+                if (mag === 0) return new Vector3D(0, 0, 0);
+                return new Vector3D(this.x / mag, this.y / mag, this.z / mag);
+            }
+
+            clone() {
+                return new Vector3D(this.x, this.y, this.z);
+            }
+
+            rotateZ(angle) {
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                return new Vector3D(
+                    this.x * cos - this.y * sin,
+                    this.x * sin + this.y * cos,
+                    this.z
+                );
+            }
+        }
+
+        // Simple Ship class
+        class Ship {
+            constructor(x, y, z, playerId) {
+                this.position = new Vector3D(x, y, z);
+                this.velocity = new Vector3D(0, 0, 0);
+                this.rotation = 0; // Simple 2D rotation for now
+                this.thrust = 0;
+                this.maxSpeed = 3;
+                this.thrustPower = 0.1;
+                this.friction = 0.95;
+                this.rotationSpeed = 0.02;
+                this.playerId = playerId;
+                console.log(`Ship ${playerId} created at:`, this.position);
+            }
+
+            update() {
+                // Apply thrust
+                if (this.thrust > 0) {
+                    const thrustVector = new Vector3D(0, 1, 0).rotateZ(this.rotation);
+                    this.velocity = this.velocity.add(thrustVector.multiply(this.thrustPower * this.thrust));
+                }
+
+                // Apply friction
+                this.velocity = this.velocity.multiply(this.friction);
+
+                // Limit speed
+                if (this.velocity.magnitude() > this.maxSpeed) {
+                    this.velocity = this.velocity.normalize().multiply(this.maxSpeed);
+                }
+
+                // Update position
+                this.position = this.position.add(this.velocity);
+
+                // Simple boundary wrapping
+                if (this.position.x > 200) this.position.x = -200;
+                if (this.position.x < -200) this.position.x = 200;
+                if (this.position.y > 200) this.position.y = -200;
+                if (this.position.y < -200) this.position.y = 200;
+            }
+
+            distanceTo(other) {
+                return this.position.subtract(other.position).magnitude();
+            }
+        }
+
+        // Simple Input Manager
+        class InputManager {
+            constructor() {
+                this.keys = {};
+                this.setupEventListeners();
+                console.log('InputManager initialized');
+            }
+
+            setupEventListeners() {
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.key.toLowerCase()] = true;
+                    console.log('Key pressed:', e.key);
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.key.toLowerCase()] = false;
+                });
+
+                document.addEventListener('blur', () => {
+                    this.keys = {};
+                });
+            }
+
+            isPressed(key) {
+                return !!this.keys[key.toLowerCase()];
+            }
+
+            getPressedKeys() {
+                return Object.keys(this.keys).filter(key => this.keys[key]);
+            }
+        }
+
+        // Simple Renderer
+        class SimpleRenderer {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.width = canvas.width;
+                this.height = canvas.height;
+                this.centerX = this.width / 2;
+                this.centerY = this.height / 2;
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+            }
+
+            drawShip(ship, color) {
+                const screenX = this.centerX + ship.position.x;
+                const screenY = this.centerY - ship.position.y;
+                
+                // Draw ship as a triangle
+                this.ctx.save();
+                this.ctx.translate(screenX, screenY);
+                this.ctx.rotate(-ship.rotation);
+                
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, -10);
+                this.ctx.lineTo(-8, 8);
+                this.ctx.lineTo(8, 8);
+                this.ctx.closePath();
+                this.ctx.stroke();
+                
+                // Draw thrust
+                if (ship.thrust > 0) {
+                    this.ctx.strokeStyle = '#ff0';
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(-3, 8);
+                    this.ctx.lineTo(0, 15);
+                    this.ctx.lineTo(3, 8);
+                    this.ctx.stroke();
+                }
+                
+                this.ctx.restore();
+            }
+
+            drawStars(count) {
+                this.ctx.fillStyle = '#333';
+                for (let i = 0; i < count; i++) {
+                    const x = Math.random() * this.width;
+                    const y = Math.random() * this.height;
+                    this.ctx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+
+        // Main Game class
+        class SimpleGame {
+            constructor() {
+                console.log('Initializing SimpleGame...');
+                
+                this.canvas1 = document.getElementById('canvas1');
+                this.canvas2 = document.getElementById('canvas2');
+                this.renderer1 = new SimpleRenderer(this.canvas1);
+                this.renderer2 = new SimpleRenderer(this.canvas2);
+                
+                this.inputManager = new InputManager();
+                
+                this.ship1 = new Ship(-50, 0, 0, 1);
+                this.ship2 = new Ship(50, 0, 0, 2);
+                
+                this.frameCount = 0;
+                
+                console.log('Game components initialized, starting game loop...');
+                this.gameLoop();
+            }
+
+            updateControls() {
+                // Reset thrust
+                this.ship1.thrust = 0;
+                this.ship2.thrust = 0;
+
+                // Player 1 controls (WASD)
+                if (this.inputManager.isPressed('w')) {
+                    this.ship1.thrust = 1;
+                    console.log('Player 1 thrust');
+                }
+                if (this.inputManager.isPressed('s')) {
+                    this.ship1.thrust = -0.5;
+                }
+                if (this.inputManager.isPressed('a')) {
+                    this.ship1.rotation += this.ship1.rotationSpeed;
+                }
+                if (this.inputManager.isPressed('d')) {
+                    this.ship1.rotation -= this.ship1.rotationSpeed;
+                }
+
+                // Player 2 controls (Arrow keys)
+                if (this.inputManager.isPressed('arrowup')) {
+                    this.ship2.thrust = 1;
+                    console.log('Player 2 thrust');
+                }
+                if (this.inputManager.isPressed('arrowdown')) {
+                    this.ship2.thrust = -0.5;
+                }
+                if (this.inputManager.isPressed('arrowleft')) {
+                    this.ship2.rotation += this.ship2.rotationSpeed;
+                }
+                if (this.inputManager.isPressed('arrowright')) {
+                    this.ship2.rotation -= this.ship2.rotationSpeed;
+                }
+            }
+
+            updateDebugDisplay() {
+                // Player 1 debug info
+                document.getElementById('p1x').textContent = Math.round(this.ship1.position.x);
+                document.getElementById('p1y').textContent = Math.round(this.ship1.position.y);
+                document.getElementById('p1z').textContent = Math.round(this.ship1.position.z);
+                document.getElementById('p1vel').textContent = this.ship1.velocity.magnitude().toFixed(1);
+                document.getElementById('p1thrust').textContent = this.ship1.thrust.toFixed(1);
+                
+                // Player 2 debug info
+                document.getElementById('p2x').textContent = Math.round(this.ship2.position.x);
+                document.getElementById('p2y').textContent = Math.round(this.ship2.position.y);
+                document.getElementById('p2z').textContent = Math.round(this.ship2.position.z);
+                document.getElementById('p2vel').textContent = this.ship2.velocity.magnitude().toFixed(1);
+                document.getElementById('p2thrust').textContent = this.ship2.thrust.toFixed(1);
+                
+                // Key display
+                const pressedKeys = this.inputManager.getPressedKeys();
+                const keyDisplay = pressedKeys.length > 0 ? pressedKeys.join(', ') : 'NONE';
+                document.getElementById('p1keys').textContent = keyDisplay;
+                document.getElementById('p2keys').textContent = keyDisplay;
+                
+                // Distance
+                const distance = Math.round(this.ship1.distanceTo(this.ship2));
+                document.getElementById('p1dist').textContent = distance;
+                document.getElementById('p2dist').textContent = distance;
+            }
+
+            update() {
+                this.updateControls();
+                this.ship1.update();
+                this.ship2.update();
+                this.updateDebugDisplay();
+                
+                this.frameCount++;
+                if (this.frameCount % 60 === 0) {
+                    console.log('Game running, frame:', this.frameCount);
+                }
+            }
+
+            render() {
+                // Clear both canvases
+                this.renderer1.clear();
+                this.renderer2.clear();
+                
+                // Draw starfield
+                this.renderer1.drawStars(50);
+                this.renderer2.drawStars(50);
+                
+                // Draw ships on both screens
+                this.renderer1.drawShip(this.ship1, '#0f0');
+                this.renderer1.drawShip(this.ship2, '#f0f');
+                
+                this.renderer2.drawShip(this.ship1, '#0f0');
+                this.renderer2.drawShip(this.ship2, '#f0f');
+            }
+
+            gameLoop() {
+                this.update();
+                this.render();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+
+        // Start the game when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, starting game...');
+            window.game = new SimpleGame();
+        });
+
+        console.log('Script loaded successfully');
+    </script>
+</body>
+</html>

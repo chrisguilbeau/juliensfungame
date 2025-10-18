@@ -1,0 +1,3996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Fighter - Cockpit View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .player-section {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .divider {
+            width: 2px;
+            background-color: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        .hud {
+            height: 80px;
+            background-color: #001100;
+            border-bottom: 1px solid #0f0;
+            padding: 8px;
+            font-size: 11px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .debug-panel {
+            background-color: #002200;
+            border: 1px solid #0f0;
+            padding: 4px;
+            overflow: hidden;
+        }
+
+        canvas {
+            background-color: #000;
+            flex: 1;
+            cursor: none;
+        }
+
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff0;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 0 0 15px #ff0;
+            pointer-events: none;
+            z-index: 15;
+            font-family: 'Courier New', monospace;
+        }
+
+        .windshield-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .player2-section .hud {
+            background-color: #110011;
+            border-bottom-color: #f0f;
+        }
+
+        .player2-section .debug-panel {
+            background-color: #220022;
+            border-color: #f0f;
+        }
+
+        .player2-section .crosshair {
+            color: #f80;
+            text-shadow: 0 0 10px #f80;
+        }
+
+        .health-bars {
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .player1-section .health-bars {
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+
+        .player2-section .health-bars {
+            color: #f0f;
+            text-shadow: 0 0 5px #f0f;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            border: 2px solid #0f0;
+            padding: 40px;
+            text-align: center;
+            z-index: 1000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 0 20px #0f0;
+        }
+
+        .game-over h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #0f0;
+        }
+
+        .game-over button {
+            background-color: #001100;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 10px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .game-over button:hover {
+            background-color: #002200;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        .control-indicators {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            pointer-events: none;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .indicator-row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .control-indicator {
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 1px solid #333;
+            padding: 4px 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            border-radius: 3px;
+            transition: all 0.1s;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .player1-section .control-indicator {
+            color: #666;
+            border-color: #0f0;
+        }
+
+        .player1-section .control-indicator.active {
+            background-color: #0f0;
+            color: #000;
+            box-shadow: 0 0 8px #0f0;
+        }
+
+        .player2-section .control-indicator {
+            color: #666;
+            border-color: #f0f;
+        }
+
+        .player2-section .control-indicator.active {
+            background-color: #f0f;
+            color: #000;
+            box-shadow: 0 0 8px #f0f;
+        }
+
+        .radar-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .radar-circle {
+            width: 60px;
+            height: 60px;
+            border: 2px solid;
+            border-radius: 50%;
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+
+        .player1-section .radar-circle {
+            border-color: #0f0;
+            box-shadow: 0 0 5px #0f0;
+        }
+
+        .player2-section .radar-circle {
+            border-color: #f0f;
+            box-shadow: 0 0 5px #f0f;
+        }
+
+        .radar-arrow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.1s ease;
+            transform-origin: center;
+        }
+
+        .player1-section .radar-arrow {
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+
+        .player2-section .radar-arrow {
+            color: #f0f;
+            text-shadow: 0 0 5px #f0f;
+        }
+
+        .cracked-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%);
+        }
+
+        .cracked-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 31%, rgba(255,255,255,0.1) 32%, transparent 33%),
+                linear-gradient(-45deg, transparent 40%, rgba(255,255,255,0.15) 41%, rgba(255,255,255,0.15) 42%, transparent 43%),
+                linear-gradient(30deg, transparent 25%, rgba(255,255,255,0.1) 26%, rgba(255,255,255,0.1) 27%, transparent 28%),
+                linear-gradient(-30deg, transparent 35%, rgba(255,255,255,0.1) 36%, rgba(255,255,255,0.1) 37%, transparent 38%),
+                linear-gradient(60deg, transparent 45%, rgba(255,255,255,0.2) 46%, rgba(255,255,255,0.2) 47%, transparent 48%);
+            background-size: 
+                200px 200px,
+                150px 150px,
+                300px 300px,
+                250px 250px,
+                180px 180px;
+            background-position:
+                20% 30%,
+                60% 70%,
+                80% 20%,
+                30% 80%,
+                70% 40%;
+        }
+
+        .cracked-screen::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 40% 60%, rgba(255,255,255,0.3) 1px, transparent 2px),
+                radial-gradient(circle at 70% 30%, rgba(255,255,255,0.2) 1px, transparent 2px),
+                radial-gradient(circle at 20% 80%, rgba(255,255,255,0.25) 1px, transparent 2px);
+            background-size: 50px 50px, 75px 75px, 60px 60px;
+        }
+
+        .cracked-screen.show {
+            display: block;
+            animation: crackAppear 0.5s ease-out;
+        }
+
+        @keyframes crackAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .options-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #000011, #001122);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            font-family: 'Courier New', monospace;
+        }
+
+        .options-content {
+            text-align: center;
+            padding: 50px;
+            border: 3px solid #0f0;
+            background: rgba(0, 20, 0, 0.8);
+            box-shadow: 0 0 30px #0f0;
+            max-width: 600px;
+        }
+
+        .options-title {
+            font-size: 36px;
+            color: #0f0;
+            text-shadow: 0 0 20px #0f0;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .options-subtitle {
+            font-size: 18px;
+            color: #0f0;
+            margin-bottom: 40px;
+            opacity: 0.8;
+        }
+
+        .game-mode {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #0f0;
+            background: rgba(0, 40, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .game-mode:hover {
+            background: rgba(0, 60, 0, 0.6);
+            box-shadow: 0 0 15px #0f0;
+            transform: scale(1.02);
+        }
+
+        .mode-title {
+            font-size: 24px;
+            color: #0f0;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .mode-description {
+            font-size: 14px;
+            color: #0f0;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .alien-mode {
+            border-color: #ff4400;
+            background: rgba(40, 20, 0, 0.3);
+        }
+
+        .alien-mode:hover {
+            background: rgba(60, 30, 0, 0.6);
+            box-shadow: 0 0 15px #ff4400;
+        }
+
+        .alien-mode .mode-title {
+            color: #ff4400;
+        }
+
+        .alien-mode .mode-description {
+            color: #ff4400;
+        }
+
+        .rainbow-mode {
+            border: 2px solid;
+            border-image: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff, #ff0080) 1;
+            background: linear-gradient(45deg, rgba(255,0,0,0.1), rgba(255,128,0,0.1), rgba(255,255,0,0.1), rgba(0,255,0,0.1), rgba(0,128,255,0.1), rgba(128,0,255,0.1), rgba(255,0,128,0.1));
+            animation: rainbow-shift 2s infinite;
+        }
+
+        .rainbow-mode:hover {
+            background: linear-gradient(45deg, rgba(255,0,0,0.3), rgba(255,128,0,0.3), rgba(255,255,0,0.3), rgba(0,255,0,0.3), rgba(0,128,255,0.3), rgba(128,0,255,0.3), rgba(255,0,128,0.3));
+            box-shadow: 0 0 20px rgba(255,255,255,0.6);
+            transform: scale(1.05);
+        }
+
+        .rainbow-mode .mode-title {
+            background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff, #ff0080);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+        }
+
+        .rainbow-mode .mode-description {
+            background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff, #ff0080);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .high-scores {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: rgba(255, 68, 0, 0.1);
+            border-radius: 8px;
+            border: 1px solid #ff4400;
+        }
+        .high-scores-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ff4400;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .score-entry {
+            font-size: 12px;
+            color: #ff4400;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .score-entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .alien-counter {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 50;
+            pointer-events: none;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+        }
+
+        .alien-counter.hidden {
+            display: none;
+        }
+
+        .aliens-remaining {
+            font-size: 72px;
+            font-weight: bold;
+            color: #ff4400;
+            text-shadow: 0 0 20px #ff4400, 0 0 40px #ff4400;
+            margin-bottom: 10px;
+        }
+        .stopwatch {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            pointer-events: none;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 2px solid #0f0;
+        }
+        .stopwatch.hidden {
+            display: none;
+        }
+        .timer-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
+        }
+        .timer-label {
+            font-size: 12px;
+            color: #0f0;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        .back-to-menu-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff4400;
+            color: #ff4400;
+            padding: 8px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+        .back-to-menu-btn:hover {
+            background-color: #ff4400;
+            color: #000;
+            box-shadow: 0 0 15px #ff4400;
+            transform: scale(1.05);
+        }
+        .back-to-menu-btn.hidden {
+            display: none;
+        }
+
+        .music-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .music-controls.hidden {
+            display: none;
+        }
+
+        .music-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .music-btn {
+            background-color: #001100;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 4px 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 0.2s;
+            text-align: left;
+            min-width: 90px;
+        }
+
+        .music-btn:hover {
+            background-color: #0f0;
+            color: #000;
+            box-shadow: 0 0 5px #0f0;
+            transform: scale(1.02);
+        }
+
+        .music-btn.active {
+            background-color: #0f0;
+            color: #000;
+            box-shadow: 0 0 8px #0f0;
+            font-weight: bold;
+        }
+
+        .music-btn.off {
+            border-color: #ff4400;
+            color: #ff4400;
+        }
+
+        .music-btn.off:hover {
+            background-color: #ff4400;
+            color: #000;
+            box-shadow: 0 0 5px #ff4400;
+        }
+
+        .music-btn.off.active {
+            background-color: #ff4400;
+            color: #000;
+            box-shadow: 0 0 8px #ff4400;
+        }
+
+        .aliens-label {
+            font-size: 24px;
+            color: #ff4400;
+            text-shadow: 0 0 10px #ff4400;
+            opacity: 0.8;
+        }
+        .color-button {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid;
+            border-image: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff, #ff0080) 1;
+            background: linear-gradient(45deg, rgba(255,0,0,0.1), rgba(255,128,0,0.1), rgba(255,255,0,0.1), rgba(0,255,0,0.1), rgba(0,128,255,0.1), rgba(128,0,255,0.1), rgba(255,0,128,0.1));
+            cursor: pointer;
+            transition: all 0.3s;
+            animation: rainbow-shift 3s infinite;
+        }
+        .color-button:hover {
+            background: linear-gradient(45deg, rgba(255,0,0,0.3), rgba(255,128,0,0.3), rgba(255,255,0,0.3), rgba(0,255,0,0.3), rgba(0,128,255,0.3), rgba(128,0,255,0.3), rgba(255,0,128,0.3));
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+            transform: scale(1.02);
+        }
+        .color-title {
+            font-size: 20px;
+            background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff, #ff0080);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .color-description {
+            font-size: 14px;
+            background: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff, #ff0080);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0.9;
+        }
+        @keyframes rainbow-shift {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        .game-over-buttons {
+            margin-top: 20px;
+        }
+
+        .game-over-buttons button {
+            background-color: #001100;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 12px 24px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 0 10px;
+        }
+
+        .game-over-buttons button:hover {
+            background-color: #0f0;
+            color: #000;
+            box-shadow: 0 0 15px #0f0;
+        }
+
+        .game-over-buttons .menu-button {
+            border-color: #ff4400;
+            color: #ff4400;
+        }
+
+        .game-over-buttons .menu-button:hover {
+            background-color: #ff4400;
+            color: #000;
+            box-shadow: 0 0 15px #ff4400;
+        }
+
+        .volume-controls {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #0f0;
+            background: rgba(0, 40, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        .volume-title {
+            font-size: 20px;
+            color: #0f0;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+            gap: 10px;
+        }
+
+        .volume-control label {
+            color: #0f0;
+            font-size: 14px;
+            min-width: 120px;
+            text-align: left;
+        }
+
+        .volume-slider {
+            flex: 1;
+            height: 6px;
+            background: #003300;
+            border: 1px solid #0f0;
+            border-radius: 3px;
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #0f0;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px #0f0;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #0f0;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px #0f0;
+        }
+
+        .volume-control span {
+            color: #0f0;
+            font-size: 14px;
+            min-width: 40px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <!-- Options Menu -->
+    <div class="options-menu" id="optionsMenu">
+        <div class="options-content">
+            <div class="options-title">3D SPACE FIGHTER</div>
+            <div class="options-subtitle">Choose Your Mission</div>
+            
+            <div class="game-mode" onclick="startGame('normal')">
+                <div class="mode-title">NORMAL MODE</div>
+                <div class="mode-description">
+                    Classic 1v1 space combat. Two pilots enter the battlefield for intense aerial dogfighting.
+                    Use weapons and speed boosts to defeat your opponent. First to eliminate the enemy wins!
+                </div>
+            </div>
+            
+            <div class="game-mode alien-mode" onclick="startGame('alien')">
+                <div class="mode-title">ALIEN INVASION</div>
+                <div class="mode-description">
+                    Cooperative survival mode! Work together to defend against 100 alien invaders.
+                    Team up with your partner to eliminate all threats and save humanity!
+                </div>
+                <div class="high-scores">
+                    <div class="high-scores-title">BEST TIMES</div>
+                    <div class="score-entry">1st: <span id="highScore1">--:--</span></div>
+                    <div class="score-entry">2nd: <span id="highScore2">--:--</span></div>
+                    <div class="score-entry">3rd: <span id="highScore3">--:--</span></div>
+                </div>
+            </div>
+
+            <div class="game-mode rainbow-mode" onclick="startGame('rainbow')">
+                <div class="mode-title">RAINBOW MODE</div>
+                <div class="mode-description">
+                    Extreme high-speed combat! Ships move 20x faster with rainbow particle trails.
+                    Lightning-fast dogfighting for experienced pilots only!
+                </div>
+            </div>
+
+            <div class="color-button" onclick="cycleShipColors()">
+                <div class="color-title">SHIP COLORS</div>
+                <div class="color-description">
+                    P1: <span id="p1ColorName">Green</span> | P2: <span id="p2ColorName">Magenta</span>
+                </div>
+            </div>
+
+            <div class="volume-controls">
+                <div class="volume-title">AUDIO SETTINGS</div>
+                <div class="volume-control">
+                    <label for="masterVolume">Master Volume:</label>
+                    <input type="range" id="masterVolume" min="0" max="100" value="50" class="volume-slider">
+                    <span id="masterVolumeValue">50%</span>
+                </div>
+                <div class="volume-control">
+                    <label for="sfxVolume">Sound Effects:</label>
+                    <input type="range" id="sfxVolume" min="0" max="100" value="50" class="volume-slider">
+                    <span id="sfxVolumeValue">50%</span>
+                </div>
+                <div class="volume-control">
+                    <label for="musicVolume">Music:</label>
+                    <input type="range" id="musicVolume" min="0" max="100" value="50" class="volume-slider">
+                    <span id="musicVolumeValue">50%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="player-section player1-section">
+            <div class="hud">
+                <div class="debug-panel">
+                    <div>PLAYER 1 COCKPIT</div>
+                    <div>HEALTH: <span class="health-bars" id="p1health">█████</span></div>
+                    <div>POS: <span id="p1x">0</span>,<span id="p1y">0</span>,<span id="p1z">0</span></div>
+                    <div>VEL: <span id="p1vel">0</span></div>
+                </div>
+                <div class="debug-panel">
+                    <div>CONTROLS: WS=Pitch AD/JL=Yaw IK=Thrust Space=Fire</div>
+                    <div>KEYS: <span id="p1keys">NONE</span></div>
+                    <div>AIM: <span id="p1aim">0,0</span></div>
+                </div>
+                <div class="debug-panel">
+                    <div>TARGET DISTANCE: <span id="p1dist">0</span></div>
+                    <div>SHOTS: <span id="p1shots">0</span></div>
+                    <div>STATUS: <span id="p1status">READY</span></div>
+                </div>
+            </div>
+            <canvas id="canvas1" width="640" height="480"></canvas>
+            <div class="windshield-frame" id="frame1"></div>
+            <div class="crosshair">✠</div>
+            <div class="radar-indicator">
+                <div class="radar-circle">
+                    <div class="radar-arrow" id="p1-radar-arrow">→</div>
+                </div>
+            </div>
+            <div class="control-indicators">
+                <div class="indicator-row">
+                    <div class="control-indicator" id="p1-up">↑ W</div>
+                    <div class="control-indicator" id="p1-thrust">⚡ I</div>
+                    <div class="control-indicator" id="p1-fire">🔥 SPC</div>
+                </div>
+                <div class="indicator-row">
+                    <div class="control-indicator" id="p1-left">← A</div>
+                    <div class="control-indicator" id="p1-down">↓ S</div>
+                    <div class="control-indicator" id="p1-right">→ D</div>
+                </div>
+                <div class="indicator-row">
+                    <div class="control-indicator" id="p1-retro">⚡ K</div>
+                </div>
+            </div>
+            <div class="cracked-screen" id="p1-cracks"></div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="player-section player2-section">
+            <div class="hud">
+                <div class="debug-panel">
+                    <div>PLAYER 2 COCKPIT</div>
+                    <div>HEALTH: <span class="health-bars" id="p2health">█████</span></div>
+                    <div>POS: <span id="p2x">0</span>,<span id="p2y">0</span>,<span id="p2z">0</span></div>
+                    <div>VEL: <span id="p2vel">0</span></div>
+                </div>
+                <div class="debug-panel">
+                    <div>CONTROLS: ↕=Pitch ↔/46=Yaw 85=Thrust 0=Fire</div>
+                    <div>KEYS: <span id="p2keys">NONE</span></div>
+                    <div>AIM: <span id="p2aim">0,0</span></div>
+                </div>
+                <div class="debug-panel">
+                    <div>TARGET DISTANCE: <span id="p2dist">0</span></div>
+                    <div>SHOTS: <span id="p2shots">0</span></div>
+                    <div>STATUS: <span id="p2status">READY</span></div>
+                </div>
+            </div>
+            <canvas id="canvas2" width="640" height="480"></canvas>
+            <div class="windshield-frame" id="frame2"></div>
+            <div class="crosshair">✠</div>
+            <div class="radar-indicator">
+                <div class="radar-circle">
+                    <div class="radar-arrow" id="p2-radar-arrow">→</div>
+                </div>
+            </div>
+            <div class="control-indicators">
+                <div class="indicator-row">
+                    <div class="control-indicator" id="p2-up">↑ ↑</div>
+                    <div class="control-indicator" id="p2-thrust">⚡ 8</div>
+                    <div class="control-indicator" id="p2-fire">🔥 0</div>
+                </div>
+                <div class="indicator-row">
+                    <div class="control-indicator" id="p2-left">← ←</div>
+                    <div class="control-indicator" id="p2-down">↓ ↓</div>
+                    <div class="control-indicator" id="p2-right">→ →</div>
+                </div>
+                <div class="indicator-row">
+                    <div class="control-indicator" id="p2-retro">⚡ 5</div>
+                </div>
+            </div>
+            <div class="cracked-screen" id="p2-cracks"></div>
+        </div>
+    </div>
+
+    <!-- Alien Counter Display -->
+    <div class="alien-counter hidden" id="alienCounter">
+        <div class="aliens-remaining" id="aliensRemaining">100</div>
+        <div>ALIENS REMAINING</div>
+    </div>
+    
+    <!-- Stopwatch for Alien Invasion Mode -->
+    <div class="stopwatch hidden" id="stopwatch">
+        <div class="timer-display" id="timerDisplay">00:00</div>
+        <div class="timer-label">TIME ELAPSED</div>
+    </div>
+    
+    <!-- End Game Button (shown during gameplay) -->
+    <button class="back-to-menu-btn hidden" id="backToMenuBtn" onclick="backToMenu()">
+        End Game Now
+    </button>
+
+    <!-- Music Selection Buttons (shown during gameplay) -->
+    <div class="music-controls hidden" id="musicControls">
+        <div class="music-buttons">
+            <button class="music-btn active" id="musicBtn1" onclick="selectMusic(1)">🎵 Classic</button>
+            <button class="music-btn" id="musicBtn2" onclick="selectMusic(2)">🔥 Intense</button>
+            <button class="music-btn" id="musicBtn3" onclick="selectMusic(3)">🌈 Psychedelic</button>
+            <button class="music-btn" id="musicBtn4" onclick="selectMusic(4)">🚀 Epic</button>
+            <button class="music-btn" id="musicBtn5" onclick="selectMusic(5)">⚡ Electronic</button>
+            <button class="music-btn off" id="musicBtnOff" onclick="selectMusic(0)">🔇 OFF</button>
+        </div>
+    </div>
+    
+    <div class="game-over" id="gameOver" style="display: none;">
+        <h2 id="winnerText"></h2>
+        <div class="game-over-buttons">
+            <button onclick="restartGame()">Play Again</button>
+            <button class="menu-button" onclick="backToMenu()">Back to Menu</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('Starting 3D cockpit space fighter...');
+
+        // Enhanced Vector3D class
+        class Vector3D {
+            constructor(x = 0, y = 0, z = 0) {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+            }
+
+            add(other) {
+                return new Vector3D(this.x + other.x, this.y + other.y, this.z + other.z);
+            }
+
+            subtract(other) {
+                return new Vector3D(this.x - other.x, this.y - other.y, this.z - other.z);
+            }
+
+            multiply(scalar) {
+                return new Vector3D(this.x * scalar, this.y * scalar, this.z * scalar);
+            }
+
+            magnitude() {
+                return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+            }
+
+            normalize() {
+                const mag = this.magnitude();
+                if (mag === 0) return new Vector3D(0, 0, 0);
+                return new Vector3D(this.x / mag, this.y / mag, this.z / mag);
+            }
+
+            clone() {
+                return new Vector3D(this.x, this.y, this.z);
+            }
+
+            dot(other) {
+                return this.x * other.x + this.y * other.y + this.z * other.z;
+            }
+
+            cross(other) {
+                return new Vector3D(
+                    this.y * other.z - this.z * other.y,
+                    this.z * other.x - this.x * other.z,
+                    this.x * other.y - this.y * other.x
+                );
+            }
+
+            clone() {
+                return new Vector3D(this.x, this.y, this.z);
+            }
+
+            rotateX(angle) {
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                return new Vector3D(
+                    this.x,
+                    this.y * cos - this.z * sin,
+                    this.y * sin + this.z * cos
+                );
+            }
+
+            rotateY(angle) {
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                return new Vector3D(
+                    this.x * cos + this.z * sin,
+                    this.y,
+                    -this.x * sin + this.z * cos
+                );
+            }
+
+            rotateZ(angle) {
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                return new Vector3D(
+                    this.x * cos - this.y * sin,
+                    this.x * sin + this.y * cos,
+                    this.z
+                );
+            }
+        }
+
+        // PowerUp class
+        class PowerUp {
+            constructor(position, type = 'speed') {
+                this.position = position.clone();
+                this.type = type;
+                this.size = 6;
+                this.rotation = 0;
+                this.rotationSpeed = 0.02;
+                this.bobOffset = Math.random() * Math.PI * 2; // Random starting phase for bobbing
+                this.bobSpeed = 0.05;
+                this.life = 1800; // 30 seconds at 60fps
+                console.log(`PowerUp spawned at:`, this.position);
+            }
+
+            update() {
+                // Rotate the power-up for visual effect
+                this.rotation += this.rotationSpeed;
+                
+                // Bob up and down slightly
+                this.bobOffset += this.bobSpeed;
+                
+                this.life--;
+            }
+
+            isExpired() {
+                return this.life <= 0;
+            }
+
+            getBobOffset() {
+                return Math.sin(this.bobOffset) * 2; // 2 unit bobbing range
+            }
+        }
+
+        // GhostFish class - ethereal space creatures
+        class GhostFish {
+            constructor(position) {
+                this.position = position.clone();
+                this.velocity = new Vector3D(
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                );
+                this.size = 8 + Math.random() * 12; // 8-20 units
+                this.swimPhase = Math.random() * Math.PI * 2;
+                this.swimSpeed = 0.05 + Math.random() * 0.03;
+                this.tailPhase = Math.random() * Math.PI * 2;
+                this.tailSpeed = 0.1 + Math.random() * 0.05;
+                this.glowPhase = Math.random() * Math.PI * 2;
+                this.glowSpeed = 0.02;
+                this.direction = this.velocity.normalize();
+                console.log(`Ghost Fish spawned at:`, this.position);
+            }
+
+            update() {
+                // Smooth swimming motion
+                this.swimPhase += this.swimSpeed;
+                this.tailPhase += this.tailSpeed;
+                this.glowPhase += this.glowSpeed;
+                
+                // Gentle floating movement with sine wave swimming
+                const swimOffset = new Vector3D(
+                    Math.sin(this.swimPhase) * 0.5,
+                    Math.cos(this.swimPhase * 0.7) * 0.3,
+                    Math.sin(this.swimPhase * 0.5) * 0.2
+                );
+                
+                this.position = this.position.add(this.velocity.add(swimOffset));
+                
+                // Boundary wrapping - keep fish in play area
+                const boundary = 1000;
+                if (this.position.x > boundary) this.position.x = -boundary;
+                if (this.position.x < -boundary) this.position.x = boundary;
+                if (this.position.y > boundary) this.position.y = -boundary;
+                if (this.position.y < -boundary) this.position.y = boundary;
+                if (this.position.z > boundary) this.position.z = -boundary;
+                if (this.position.z < -boundary) this.position.z = boundary;
+            }
+
+            getBodyVertices() {
+                // Simple fish body shape
+                const s = this.size * 0.1;
+                return [
+                    // Fish body (elongated ellipse)
+                    new Vector3D(0, 0, s * 3),        // nose
+                    new Vector3D(-s, -s * 0.5, s),    // left side front
+                    new Vector3D(s, -s * 0.5, s),     // right side front
+                    new Vector3D(-s * 1.5, 0, 0),     // left side middle
+                    new Vector3D(s * 1.5, 0, 0),      // right side middle
+                    new Vector3D(-s * 0.5, s * 0.5, -s), // left side back
+                    new Vector3D(s * 0.5, s * 0.5, -s),  // right side back
+                    new Vector3D(0, 0, -s * 2),       // tail base
+                ];
+            }
+
+            getTailVertices() {
+                // Animated tail
+                const s = this.size * 0.1;
+                const tailWave = Math.sin(this.tailPhase) * 0.3;
+                return [
+                    new Vector3D(0, 0, -s * 2),                    // tail base
+                    new Vector3D(-s * 0.8 + tailWave, s, -s * 4), // left tail fin
+                    new Vector3D(s * 0.8 + tailWave, s, -s * 4),  // right tail fin
+                    new Vector3D(tailWave, 0, -s * 5),             // tail tip
+                ];
+            }
+
+            getGlowIntensity() {
+                return (Math.sin(this.glowPhase) * 0.3 + 0.7); // 0.4 to 1.0
+            }
+        }
+
+        // Alien class for invasion mode
+        class Alien {
+            constructor(position) {
+                this.position = position.clone();
+                this.velocity = new Vector3D(
+                    (Math.random() - 0.5) * 1.2,
+                    (Math.random() - 0.5) * 1.2,
+                    (Math.random() - 0.5) * 1.2
+                );
+                this.size = 96 + Math.random() * 48; // 96-144 units (3x ship size)
+                this.rotation = new Vector3D(0, 0, 0);
+                this.rotationSpeed = new Vector3D(
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1
+                );
+                this.lives = 1;
+                this.exploded = false;
+                this.explosionTimer = 0;
+                this.explosionParticles = [];
+                this.aggroTimer = Math.random() * 300; // Random aggression timing
+                console.log(`Alien spawned at:`, this.position);
+            }
+
+            update() {
+                if (this.exploded) {
+                    if (this.explosionTimer > 0) {
+                        this.explosionTimer--;
+                        // Update explosion particles
+                        this.explosionParticles.forEach(particle => {
+                            particle.position = particle.position.add(particle.velocity);
+                            particle.velocity = particle.velocity.multiply(0.98);
+                            particle.life--;
+                        });
+                        this.explosionParticles = this.explosionParticles.filter(p => p.life > 0);
+                    }
+                    return;
+                }
+
+                // Simple AI movement
+                this.aggroTimer--;
+                if (this.aggroTimer <= 0) {
+                    // Change direction randomly
+                    this.velocity = new Vector3D(
+                        (Math.random() - 0.5) * 1.2,
+                        (Math.random() - 0.5) * 1.2,
+                        (Math.random() - 0.5) * 1.2
+                    );
+                    this.aggroTimer = 120 + Math.random() * 180; // 2-5 seconds
+                }
+
+                // Update rotation
+                this.rotation.x += this.rotationSpeed.x;
+                this.rotation.y += this.rotationSpeed.y;
+                this.rotation.z += this.rotationSpeed.z;
+
+                // Update position
+                this.position = this.position.add(this.velocity);
+
+                // Boundary wrapping
+                const boundary = 800;
+                if (this.position.x > boundary) this.position.x = -boundary;
+                if (this.position.x < -boundary) this.position.x = boundary;
+                if (this.position.y > boundary) this.position.y = -boundary;
+                if (this.position.y < -boundary) this.position.y = boundary;
+                if (this.position.z > boundary) this.position.z = -boundary;
+                if (this.position.z < -boundary) this.position.z = boundary;
+            }
+
+            takeDamage() {
+                this.lives--;
+                if (this.lives <= 0) {
+                    this.exploded = true;
+                    this.explosionTimer = 60; // 1 second explosion
+                    this.explosionParticles = this.createExplosionParticles();
+                }
+            }
+
+            createExplosionParticles() {
+                const particles = [];
+                const particleCount = 10;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push({
+                        position: this.position.clone(),
+                        velocity: new Vector3D(
+                            (Math.random() - 0.5) * 8,
+                            (Math.random() - 0.5) * 8,
+                            (Math.random() - 0.5) * 8
+                        ),
+                        life: 40 + Math.random() * 40,
+                        color: Math.random() > 0.5 ? '#ff0044' : '#ff4400', // Red/orange
+                        size: 1 + Math.random() * 2
+                    });
+                }
+                return particles;
+            }
+
+            getVertices() {
+                // Simple alien ship - angular and aggressive
+                const s = this.size * 0.1;
+                return [
+                    new Vector3D(0, 0, s * 2),          // front tip
+                    new Vector3D(-s * 1.5, 0, 0),       // left wing
+                    new Vector3D(s * 1.5, 0, 0),        // right wing
+                    new Vector3D(0, s, -s),             // top back
+                    new Vector3D(0, -s, -s),            // bottom back
+                    new Vector3D(-s * 0.5, 0, -s * 2),  // left engine
+                    new Vector3D(s * 0.5, 0, -s * 2),   // right engine
+                ];
+            }
+
+            getCollisionRadius() {
+                return this.size * 0.8;
+            }
+        }
+
+        // Projectile class
+        class Projectile {
+            constructor(position, direction, speed = 12) {
+                this.position = position.clone();
+                this.velocity = direction.normalize().multiply(speed);
+                this.life = 60; // frames (1 second at 60fps)
+                this.size = 1.5; // Thinner bullets
+                this.length = 8; // Length for bullet trail
+            }
+
+            update() {
+                this.position = this.position.add(this.velocity);
+                this.life--;
+            }
+
+            isExpired() {
+                return this.life <= 0;
+            }
+        }
+
+        // 3D Ship class
+        class Ship3D {
+            constructor(x, y, z, playerId, gameMode = 'normal') {
+                this.position = new Vector3D(x, y, z);
+                this.velocity = new Vector3D(0, 0, 0);
+                this.rotation = new Vector3D(0, 0, 0); // pitch, yaw, roll
+                this.thrust = 0;
+                this.gameMode = gameMode;
+
+                // Adjust speed based on game mode
+                if (gameMode === 'rainbow') {
+                    this.maxSpeed = 100; // 20x faster than normal (5 * 20)
+                    this.thrustPower = 3; // 20x thrust power (0.15 * 20)
+                    this.rotationSpeed = 0.06; // Only 2x rotation speed (0.03 * 2) for better control
+                    this.friction = 0.98; // Higher friction to help control at high speeds
+                } else {
+                    this.maxSpeed = 5;
+                    this.thrustPower = 0.15;
+                    this.rotationSpeed = 0.03;
+                    this.friction = 0.94; // Higher friction for quicker stopping
+                }
+
+                this.playerId = playerId;
+                this.projectiles = [];
+                this.shotCount = 0;
+                this.fireDelay = 0;
+                this.lives = 5;
+                this.maxLives = 5;
+                this.baseMaxSpeed = this.maxSpeed; // Store original max speed
+                this.speedBoostActive = false;
+                this.speedBoostTimer = 0;
+                this.damageBlinkTimer = 0; // Timer for damage screen blink effect
+                this.exploded = false; // Whether ship has exploded
+                this.explosionTimer = 0; // Timer for explosion effect
+                this.explosionParticles = []; // Array of explosion particles
+                this.thrustSoundTimer = 0; // Timer for thrust sound intervals
+                this.lastThrustState = 0; // Track previous thrust state
+
+                // Rainbow mode specific properties
+                this.rainbowHue = 0; // For color cycling
+                this.trailParticles = []; // For rainbow trails
+
+                console.log(`3D Ship ${playerId} created at:`, this.position, 'Mode:', gameMode);
+            }
+
+            getRainbowColor() {
+                if (this.gameMode !== 'rainbow') return null;
+
+                // Convert hue to RGB
+                const h = this.rainbowHue / 60;
+                const c = 1;
+                const x = c * (1 - Math.abs((h % 2) - 1));
+                const m = 0;
+
+                let r, g, b;
+                if (h >= 0 && h < 1) { r = c; g = x; b = 0; }
+                else if (h >= 1 && h < 2) { r = x; g = c; b = 0; }
+                else if (h >= 2 && h < 3) { r = 0; g = c; b = x; }
+                else if (h >= 3 && h < 4) { r = 0; g = x; b = c; }
+                else if (h >= 4 && h < 5) { r = x; g = 0; b = c; }
+                else { r = c; g = 0; b = x; }
+
+                r = Math.round((r + m) * 255);
+                g = Math.round((g + m) * 255);
+                b = Math.round((b + m) * 255);
+
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+
+            getForwardVector() {
+                return new Vector3D(0, 0, 1)
+                    .rotateX(this.rotation.x)
+                    .rotateY(this.rotation.y)
+                    .rotateZ(this.rotation.z);
+            }
+
+            getRightVector() {
+                return new Vector3D(1, 0, 0)
+                    .rotateX(this.rotation.x)
+                    .rotateY(this.rotation.y)
+                    .rotateZ(this.rotation.z);
+            }
+
+            getUpVector() {
+                return new Vector3D(0, 1, 0)
+                    .rotateX(this.rotation.x)
+                    .rotateY(this.rotation.y)
+                    .rotateZ(this.rotation.z);
+            }
+
+            // Apply yaw rotation relative to the ship's current orientation
+            turnLeft(amount) {
+                // Turn left in world space (like W/S for pitch up/down)
+                this.rotation.y -= amount;
+            }
+
+            turnRight(amount) {
+                // Turn right in world space (like W/S for pitch up/down)
+                this.rotation.y += amount;
+            }
+            
+            // Cockpit-relative turning (roll left/right like a real aircraft)
+            rollLeft(amount) {
+                this.rotation.z -= amount; // Roll counterclockwise
+            }
+            
+            rollRight(amount) {
+                this.rotation.z += amount; // Roll clockwise
+            }
+
+
+
+            update() {
+                // Handle speed boost timer
+                if (this.speedBoostActive) {
+                    this.speedBoostTimer--;
+                    if (this.speedBoostTimer <= 0) {
+                        this.speedBoostActive = false;
+                        this.maxSpeed = this.baseMaxSpeed;
+                        console.log(`Ship ${this.playerId} speed boost expired`);
+                    }
+                }
+                
+
+                // Apply thrust
+                if (this.thrust !== 0) {
+                    const thrustVector = this.getForwardVector().multiply(this.thrustPower * this.thrust);
+                    this.velocity = this.velocity.add(thrustVector);
+                }
+
+                // Apply friction
+                this.velocity = this.velocity.multiply(this.friction);
+
+                // Limit speed
+                if (this.velocity.magnitude() > this.maxSpeed) {
+                    this.velocity = this.velocity.normalize().multiply(this.maxSpeed);
+                }
+
+                // Update position
+                this.position = this.position.add(this.velocity);
+
+                // Rainbow mode effects
+                if (this.gameMode === 'rainbow') {
+                    // Update rainbow hue for color cycling
+                    this.rainbowHue += 2; // Cycle through hues quickly
+                    if (this.rainbowHue > 360) this.rainbowHue = 0;
+
+                    // Add trail particles when moving
+                    if (this.velocity.magnitude() > 1) {
+                        this.trailParticles.push({
+                            position: this.position.clone(),
+                            hue: this.rainbowHue,
+                            life: 30, // 0.5 seconds at 60fps
+                            maxLife: 30,
+                            size: 3
+                        });
+                    }
+
+                    // Update trail particles
+                    this.trailParticles = this.trailParticles.filter(particle => {
+                        particle.life--;
+                        return particle.life > 0;
+                    });
+
+                    // Limit trail particles for performance
+                    if (this.trailParticles.length > 50) {
+                        this.trailParticles.splice(0, this.trailParticles.length - 50);
+                    }
+                }
+
+                // Boundary wrapping - optimized field
+                const boundary = 800;
+                if (this.position.x > boundary) this.position.x = -boundary;
+                if (this.position.x < -boundary) this.position.x = boundary;
+                if (this.position.y > boundary) this.position.y = -boundary;
+                if (this.position.y < -boundary) this.position.y = boundary;
+                if (this.position.z > boundary) this.position.z = -boundary;
+                if (this.position.z < -boundary) this.position.z = boundary;
+
+                // Update projectiles
+                this.projectiles = this.projectiles.filter(projectile => {
+                    projectile.update();
+                    return !projectile.isExpired();
+                });
+
+                if (this.fireDelay > 0) {
+                    this.fireDelay--;
+                }
+
+                // Update damage blink timer
+                if (this.damageBlinkTimer > 0) {
+                    this.damageBlinkTimer--;
+                }
+
+                // Update explosion effect
+                if (this.exploded && this.explosionTimer > 0) {
+                    this.explosionTimer--;
+                    // Update explosion particles
+                    this.explosionParticles.forEach(particle => {
+                        particle.position = particle.position.add(particle.velocity);
+                        particle.velocity = particle.velocity.multiply(0.98); // Slow down over time
+                        particle.life--;
+                    });
+                    // Remove dead particles
+                    this.explosionParticles = this.explosionParticles.filter(p => p.life > 0);
+                }
+            }
+
+            fire() {
+                if (this.fireDelay <= 0 && this.projectiles.length < 3) {
+                    const firePosition = this.position.add(this.getForwardVector().multiply(15));
+                    const fireDirection = this.getForwardVector();
+                    this.projectiles.push(new Projectile(firePosition, fireDirection));
+                    this.shotCount++;
+                    this.fireDelay = 8; // Slightly faster firing rate
+                    
+                    // Play shooting sound
+                    this.playShootSound();
+                    
+                    console.log(`Ship ${this.playerId} fired shot ${this.shotCount} (${this.projectiles.length}/3)`);
+                }
+            }
+
+            playShootSound() {
+                // Create a simple shooting sound using Web Audio API
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                    // Create oscillator for the main laser sound
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    // Configure the laser sound - high pitched zap
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+
+                    // Volume envelope - quick attack, fast decay, adjusted for volume settings
+                    const effectiveVolume = getEffectiveVolume('sfx') * 0.3;
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(effectiveVolume, audioContext.currentTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+                    oscillator.type = 'square'; // Sharp electronic sound
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                } catch (error) {
+                    console.log('Audio not supported:', error);
+                }
+            }
+            
+            playThrustSound() {
+                // Create engine/thruster sound
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                    // Resume audio context if suspended
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+
+                    // Create oscillator for the main engine sound
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    // Configure the engine sound - low rumbling frequency
+                    oscillator.frequency.setValueAtTime(80, audioContext.currentTime);
+                    oscillator.frequency.linearRampToValueAtTime(120, audioContext.currentTime + 0.1);
+
+                    // Volume envelope - quick start, sustained, adjusted for volume settings
+                    const effectiveVolume = getEffectiveVolume('sfx');
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(effectiveVolume * 0.15, audioContext.currentTime + 0.02);
+                    gainNode.gain.linearRampToValueAtTime(effectiveVolume * 0.1, audioContext.currentTime + 0.1);
+
+                    oscillator.type = 'sawtooth'; // Rough engine sound
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+
+                } catch (error) {
+                    console.log('Thrust sound error:', error);
+                }
+            }
+
+            distanceTo(other) {
+                return this.position.subtract(other.position).magnitude();
+            }
+
+            takeDamage() {
+                if (this.lives > 0) {
+                    this.lives--;
+                    this.damageBlinkTimer = 30; // Blink for half a second (30 frames at 60fps)
+                    console.log(`Ship ${this.playerId} took damage, lives remaining: ${this.lives}`);
+                    
+                    // Play rumbling sound when hit
+                    this.playRumbleSound();
+                    
+                    // Play explosion effect if ship dies
+                    if (this.lives <= 0) {
+                        this.playExplosionSound();
+                        this.exploded = true;
+                        this.explosionTimer = 120; // 2 seconds of explosion effect
+                        this.explosionParticles = this.createExplosionParticles();
+                    }
+                }
+            }
+
+            createExplosionParticles() {
+                const particles = [];
+                const particleCount = 20;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push({
+                        position: this.position.clone(),
+                        velocity: new Vector3D(
+                            (Math.random() - 0.5) * 10,
+                            (Math.random() - 0.5) * 10,
+                            (Math.random() - 0.5) * 10
+                        ),
+                        life: 60 + Math.random() * 60, // 1-2 seconds
+                        color: Math.random() > 0.5 ? '#ff4400' : '#ffaa00', // Orange/yellow
+                        size: 2 + Math.random() * 3
+                    });
+                }
+                return particles;
+            }
+
+            playRumbleSound() {
+                // Create rumbling damage sound
+                console.log('Playing rumble sound');
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Resume audio context if suspended
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    
+                    const duration = 0.8;
+                    
+                    // Low frequency rumble
+                    const rumble = audioContext.createOscillator();
+                    const rumbleGain = audioContext.createGain();
+                    rumble.connect(rumbleGain);
+                    rumbleGain.connect(audioContext.destination);
+                    
+                    rumble.frequency.setValueAtTime(40, audioContext.currentTime);
+                    rumble.frequency.exponentialRampToValueAtTime(20, audioContext.currentTime + duration);
+                    rumble.type = 'sawtooth';
+                    
+                    const effectiveVolume = getEffectiveVolume('sfx');
+                    rumbleGain.gain.setValueAtTime(0, audioContext.currentTime);
+                    rumbleGain.gain.linearRampToValueAtTime(effectiveVolume * 0.4, audioContext.currentTime + 0.05);
+                    rumbleGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                    
+                    // Mid frequency impact
+                    const impact = audioContext.createOscillator();
+                    const impactGain = audioContext.createGain();
+                    impact.connect(impactGain);
+                    impactGain.connect(audioContext.destination);
+                    
+                    impact.frequency.setValueAtTime(120, audioContext.currentTime);
+                    impact.frequency.exponentialRampToValueAtTime(60, audioContext.currentTime + 0.3);
+                    impact.type = 'square';
+                    
+                    impactGain.gain.setValueAtTime(0, audioContext.currentTime);
+                    impactGain.gain.linearRampToValueAtTime(effectiveVolume * 0.3, audioContext.currentTime + 0.02);
+                    impactGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    
+                    // Start sounds
+                    rumble.start(audioContext.currentTime);
+                    rumble.stop(audioContext.currentTime + duration);
+                    
+                    impact.start(audioContext.currentTime);
+                    impact.stop(audioContext.currentTime + 0.3);
+                    
+                    console.log('Rumble sound started successfully');
+                    
+                } catch (error) {
+                    console.log('Rumble sound error:', error);
+                }
+            }
+
+            playExplosionSound() {
+                // Create a big explosion sound
+                console.log('Playing explosion sound');
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Resume audio context if suspended
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    
+                    const duration = 2.0;
+                    
+                    // Deep explosion boom
+                    const boom = audioContext.createOscillator();
+                    const boomGain = audioContext.createGain();
+                    boom.connect(boomGain);
+                    boomGain.connect(audioContext.destination);
+                    
+                    boom.frequency.setValueAtTime(80, audioContext.currentTime);
+                    boom.frequency.exponentialRampToValueAtTime(20, audioContext.currentTime + duration);
+                    boom.type = 'sawtooth';
+                    
+                    const effectiveVolume = getEffectiveVolume('sfx');
+                    boomGain.gain.setValueAtTime(0, audioContext.currentTime);
+                    boomGain.gain.linearRampToValueAtTime(effectiveVolume * 0.7, audioContext.currentTime + 0.1);
+                    boomGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                    
+                    // High frequency explosion crackle
+                    const crackle = audioContext.createOscillator();
+                    const crackleGain = audioContext.createGain();
+                    crackle.connect(crackleGain);
+                    crackleGain.connect(audioContext.destination);
+                    
+                    crackle.frequency.setValueAtTime(3000, audioContext.currentTime);
+                    crackle.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.8);
+                    crackle.type = 'square';
+                    
+                    crackleGain.gain.setValueAtTime(0, audioContext.currentTime);
+                    crackleGain.gain.linearRampToValueAtTime(effectiveVolume * 0.4, audioContext.currentTime + 0.02);
+                    crackleGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+                    
+                    // Start sounds
+                    boom.start(audioContext.currentTime);
+                    boom.stop(audioContext.currentTime + duration);
+                    
+                    crackle.start(audioContext.currentTime);
+                    crackle.stop(audioContext.currentTime + 0.8);
+                    
+                    console.log('Explosion sound started successfully');
+                    
+                } catch (error) {
+                    console.log('Explosion sound error:', error);
+                }
+            }
+
+            getCollisionRadius() {
+                return 10; // Ship collision radius
+            }
+
+            checkProjectileCollisions(otherShip) {
+                let hit = false;
+                this.projectiles = this.projectiles.filter(projectile => {
+                    const distance = projectile.position.subtract(otherShip.position).magnitude();
+                    if (distance < otherShip.getCollisionRadius()) {
+                        otherShip.takeDamage();
+                        hit = true;
+                        return false; // Remove projectile
+                    }
+                    return true; // Keep projectile
+                });
+                return hit;
+            }
+
+            activateSpeedBoost() {
+                this.speedBoostActive = true;
+                this.speedBoostTimer = 300; // 5 seconds at 60fps
+                this.maxSpeed = this.baseMaxSpeed * 2; // Double the speed
+                console.log(`Ship ${this.playerId} activated speed boost!`);
+            }
+
+            getShipVertices() {
+                // Realistic space fighter design
+                const vertices = [
+                    // Main fuselage (body)
+                    new Vector3D(0, 0, 16),           // 0: nose tip
+                    new Vector3D(-2, -1, 8),          // 1: nose left-bottom
+                    new Vector3D(2, -1, 8),           // 2: nose right-bottom
+                    new Vector3D(2, 1, 8),            // 3: nose right-top
+                    new Vector3D(-2, 1, 8),           // 4: nose left-top
+                    
+                    // Cockpit section
+                    new Vector3D(-3, -2, 4),          // 5: cockpit left-bottom
+                    new Vector3D(3, -2, 4),           // 6: cockpit right-bottom
+                    new Vector3D(3, 2, 4),            // 7: cockpit right-top
+                    new Vector3D(-3, 2, 4),           // 8: cockpit left-top
+                    
+                    // Main body rear
+                    new Vector3D(-3, -2, -8),         // 9: body left-bottom-back
+                    new Vector3D(3, -2, -8),          // 10: body right-bottom-back
+                    new Vector3D(3, 1, -8),           // 11: body right-top-back
+                    new Vector3D(-3, 1, -8),          // 12: body left-top-back
+                    
+                    // Wings
+                    new Vector3D(-8, -1, 0),          // 13: left wing tip
+                    new Vector3D(-4, -2, -4),         // 14: left wing root back
+                    new Vector3D(8, -1, 0),           // 15: right wing tip
+                    new Vector3D(4, -2, -4),          // 16: right wing root back
+                    
+                    // Engine exhausts
+                    new Vector3D(-2, -1, -12),        // 17: left engine
+                    new Vector3D(2, -1, -12),         // 18: right engine
+                ];
+
+                return vertices.map(v => {
+                    return v.rotateX(this.rotation.x)
+                           .rotateY(this.rotation.y)
+                           .rotateZ(this.rotation.z)
+                           .add(this.position);
+                });
+            }
+
+            // Keep old method name for compatibility
+            getCubeVertices() {
+                return this.getShipVertices();
+            }
+
+            getPilotVertices() {
+                // Stick figure pilot inside the new cockpit
+                const pilot = [
+                    // Head (circle center)
+                    new Vector3D(0, 1, 2),            // 0: head center (in cockpit)
+                    // Body
+                    new Vector3D(0, 1, 2),            // 1: neck (same as head for connection)
+                    new Vector3D(0, -1, 0),           // 2: waist (seated position)
+                    // Arms
+                    new Vector3D(-2, 0, 1),           // 3: left hand (on controls)
+                    new Vector3D(2, 0, 1),            // 4: right hand (on controls)
+                    new Vector3D(0, 0, 1),            // 5: shoulders (center)
+                    // Legs
+                    new Vector3D(-1, -1, -2),         // 6: left foot (seated)
+                    new Vector3D(1, -1, -2),          // 7: right foot (seated)
+                ];
+
+                return pilot.map(v => {
+                    return v.rotateX(this.rotation.x)
+                           .rotateY(this.rotation.y)
+                           .rotateZ(this.rotation.z)
+                           .add(this.position);
+                });
+            }
+        }
+
+        // Enhanced Input Manager with mouse support
+        class InputManager {
+            constructor() {
+                this.keys = {};
+                this.mouse = { x: 0, y: 0 };
+                this.setupEventListeners();
+                console.log('InputManager initialized with mouse support');
+            }
+
+            setupEventListeners() {
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.key.toLowerCase()] = true;
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.key.toLowerCase()] = false;
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    this.mouse.x = e.clientX;
+                    this.mouse.y = e.clientY;
+                });
+
+                document.addEventListener('click', (e) => {
+                    e.preventDefault();
+                });
+
+                document.addEventListener('blur', () => {
+                    this.keys = {};
+                });
+            }
+
+            isPressed(key) {
+                return !!this.keys[key.toLowerCase()];
+            }
+
+            getPressedKeys() {
+                return Object.keys(this.keys).filter(key => this.keys[key]);
+            }
+
+            getMousePosition() {
+                return { ...this.mouse };
+            }
+        }
+
+        // Skybox class for persistent starfield
+        class Skybox {
+            constructor(size = 1200) {
+                this.size = size;
+                this.stars = this.generateStars();
+                console.log(`Generated skybox with ${this.stars.length} stars`);
+            }
+
+            generateStars() {
+                const stars = [];
+                const faces = [
+                    { normal: new Vector3D(0, 0, 1), right: new Vector3D(1, 0, 0), up: new Vector3D(0, 1, 0) },   // front
+                    { normal: new Vector3D(0, 0, -1), right: new Vector3D(-1, 0, 0), up: new Vector3D(0, 1, 0) }, // back
+                    { normal: new Vector3D(1, 0, 0), right: new Vector3D(0, 0, -1), up: new Vector3D(0, 1, 0) },  // right
+                    { normal: new Vector3D(-1, 0, 0), right: new Vector3D(0, 0, 1), up: new Vector3D(0, 1, 0) },  // left
+                    { normal: new Vector3D(0, 1, 0), right: new Vector3D(1, 0, 0), up: new Vector3D(0, 0, -1) },  // top
+                    { normal: new Vector3D(0, -1, 0), right: new Vector3D(1, 0, 0), up: new Vector3D(0, 0, 1) }   // bottom
+                ];
+
+                faces.forEach(face => {
+                    // Generate stars for this face
+                    const starsPerFace = 80 + Math.random() * 40; // 80-120 stars per face
+                    
+                    for (let i = 0; i < starsPerFace; i++) {
+                        // Random position on face (-1 to 1 in face coordinates)
+                        const u = (Math.random() - 0.5) * 2;
+                        const v = (Math.random() - 0.5) * 2;
+                        
+                        // Convert to world position
+                        const position = face.normal.multiply(this.size / 2)
+                            .add(face.right.multiply(u * this.size / 2))
+                            .add(face.up.multiply(v * this.size / 2));
+                        
+                        // Star properties
+                        const brightness = Math.random();
+                        const size = brightness * 2 + 0.5; // 0.5 to 2.5
+                        
+                        // Star colors (realistic)
+                        const colors = [
+                            '#ffffff', // white
+                            '#ffffcc', // pale yellow
+                            '#ffcc99', // orange
+                            '#ff9999', // red
+                            '#ccccff', // blue-white
+                            '#9999ff', // blue
+                            '#ffdddd'  // pink-white
+                        ];
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        stars.push({
+                            position: position,
+                            size: size,
+                            color: color,
+                            brightness: brightness,
+                            twinkle: Math.random() * Math.PI * 2 // for twinkling effect
+                        });
+                    }
+                });
+
+                return stars;
+            }
+
+            render(renderer, cameraPos, cameraRotation) {
+                this.stars.forEach((star, index) => {
+                    const projected = renderer.project3D(star.position, cameraPos, cameraRotation);
+                    
+                    if (projected.visible && projected.z > 100) { // Only render distant stars
+                        // Twinkling effect
+                        const twinkle = Math.sin(Date.now() * 0.001 + star.twinkle) * 0.3 + 0.7;
+                        const alpha = star.brightness * twinkle;
+                        
+                        // Size based on distance (far stars appear smaller)
+                        const apparentSize = Math.max(0.5, star.size * (500 / projected.z));
+                        
+                        renderer.ctx.save();
+                        renderer.ctx.globalAlpha = alpha;
+                        renderer.ctx.fillStyle = star.color;
+                        renderer.ctx.shadowColor = star.color;
+                        renderer.ctx.shadowBlur = apparentSize * 2;
+                        
+                        renderer.ctx.beginPath();
+                        renderer.ctx.arc(projected.x, projected.y, apparentSize, 0, Math.PI * 2);
+                        renderer.ctx.fill();
+                        
+                        // Add star glow for brighter stars
+                        if (star.brightness > 0.7) {
+                            renderer.ctx.shadowBlur = apparentSize * 4;
+                            renderer.ctx.globalAlpha = alpha * 0.3;
+                            renderer.ctx.beginPath();
+                            renderer.ctx.arc(projected.x, projected.y, apparentSize * 2, 0, Math.PI * 2);
+                            renderer.ctx.fill();
+                        }
+                        
+                        renderer.ctx.restore();
+                    }
+                });
+            }
+        }
+
+        // 3D Renderer with cockpit view
+        class Renderer3D {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.width = canvas.width;
+                this.height = canvas.height;
+                this.centerX = this.width / 2;
+                this.centerY = this.height / 2;
+                this.fov = Math.PI / 3; // 60 degrees
+                this.viewDistance = 400;
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+            }
+
+            project3D(point3D, cameraPos, cameraRotation) {
+                // Transform point relative to camera
+                let relative = point3D.subtract(cameraPos);
+                
+                // Apply camera rotation (inverse)
+                relative = relative.rotateY(-cameraRotation.y)
+                                 .rotateX(-cameraRotation.x)
+                                 .rotateZ(-cameraRotation.z);
+
+                // Perspective projection
+                if (relative.z <= 0.1) relative.z = 0.1; // Prevent division by zero
+                
+                const scale = this.viewDistance / relative.z;
+                const screenX = this.centerX + relative.x * scale;
+                const screenY = this.centerY - relative.y * scale;
+                
+                return {
+                    x: screenX,
+                    y: screenY,
+                    z: relative.z,
+                    visible: relative.z > 0 && screenX >= 0 && screenX <= this.width && screenY >= 0 && screenY <= this.height
+                };
+            }
+
+            drawCube(ship, cameraPos, cameraRotation, color) {
+                const vertices = ship.getShipVertices();
+                const projected = vertices.map(v => this.project3D(v, cameraPos, cameraRotation));
+                
+                // Realistic space fighter edges
+                const edges = [
+                    // Nose section
+                    [0,1], [0,2], [0,3], [0,4],      // nose tip to nose corners
+                    [1,2], [2,3], [3,4], [4,1],      // nose section perimeter
+                    
+                    // Nose to cockpit
+                    [1,5], [2,6], [3,7], [4,8],      // nose to cockpit connections
+                    
+                    // Cockpit section
+                    [5,6], [6,7], [7,8], [8,5],      // cockpit perimeter
+                    
+                    // Cockpit to main body
+                    [5,9], [6,10], [7,11], [8,12],   // cockpit to body connections
+                    
+                    // Main body rear
+                    [9,10], [10,11], [11,12], [12,9], // body rear perimeter
+                    
+                    // Wings
+                    [5,13], [13,14], [14,9],         // left wing
+                    [6,15], [15,16], [16,10],        // right wing
+                    
+                    // Engine connections
+                    [9,17], [10,18],                 // engines
+                ];
+
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 2;
+                
+                edges.forEach(([start, end]) => {
+                    const p1 = projected[start];
+                    const p2 = projected[end];
+                    
+                    if (p1.visible || p2.visible) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(p1.x, p1.y);
+                        this.ctx.lineTo(p2.x, p2.y);
+                        this.ctx.stroke();
+                    }
+                });
+
+                // Draw thrust fire effects
+                this.drawThrustFire(ship, cameraPos, cameraRotation);
+
+                // Draw pilot stick figure
+                this.drawPilot(ship, cameraPos, cameraRotation, color);
+            }
+
+            drawPilot(ship, cameraPos, cameraRotation, pilotColor) {
+                const pilotVertices = ship.getPilotVertices();
+                const projected = pilotVertices.map(v => this.project3D(v, cameraPos, cameraRotation));
+                
+                // Check if pilot is visible (inside ship bounds)
+                const headProjected = projected[0];
+                if (!headProjected.visible || headProjected.z < 5) return;
+                
+                this.ctx.strokeStyle = pilotColor;
+                this.ctx.fillStyle = pilotColor;
+                this.ctx.lineWidth = 1;
+                this.ctx.lineCap = 'round';
+                
+                // Draw head (small circle)
+                this.ctx.beginPath();
+                this.ctx.arc(headProjected.x, headProjected.y, Math.max(2, 200 / headProjected.z), 0, Math.PI * 2);
+                this.ctx.stroke();
+                
+                // Pilot stick figure connections
+                const pilotEdges = [
+                    [1, 2],   // neck to waist (body)
+                    [5, 2],   // shoulders to waist  
+                    [5, 3],   // left shoulder to left hand
+                    [5, 4],   // right shoulder to right hand
+                    [2, 6],   // waist to left foot
+                    [2, 7],   // waist to right foot
+                ];
+
+                pilotEdges.forEach(([start, end]) => {
+                    const p1 = projected[start];
+                    const p2 = projected[end];
+                    
+                    if (p1.visible && p2.visible) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(p1.x, p1.y);
+                        this.ctx.lineTo(p2.x, p2.y);
+                        this.ctx.stroke();
+                    }
+                });
+            }
+
+            drawThrustFire(ship, cameraPos, cameraRotation) {
+                // Only draw thrust fire when ship is thrusting
+                if (ship.thrust <= 0) return;
+                
+                // Get engine positions from ship vertices
+                const vertices = ship.getShipVertices();
+                const engineLeft = vertices[17];   // left engine
+                const engineRight = vertices[18];  // right engine
+                
+                // Project engine positions to screen
+                const leftEngineProjected = this.project3D(engineLeft, cameraPos, cameraRotation);
+                const rightEngineProjected = this.project3D(engineRight, cameraPos, cameraRotation);
+                
+                // Calculate fire length based on thrust intensity
+                const fireLength = ship.thrust * 8 + Math.random() * 4; // 8-12 units max length
+                
+                // Get ship's backward direction (opposite of forward vector)
+                const backwardVector = ship.getForwardVector().multiply(-1);
+                
+                // Create fire trail points behind each engine
+                const firePointsLeft = [];
+                const firePointsRight = [];
+                
+                for (let i = 0; i < 4; i++) {
+                    const distance = (i + 1) * (fireLength / 4);
+                    const randomOffset = new Vector3D(
+                        (Math.random() - 0.5) * 2,
+                        (Math.random() - 0.5) * 2,
+                        (Math.random() - 0.5) * 2
+                    );
+                    
+                    const leftFirePoint = engineLeft.add(backwardVector.multiply(distance)).add(randomOffset);
+                    const rightFirePoint = engineRight.add(backwardVector.multiply(distance)).add(randomOffset);
+                    
+                    firePointsLeft.push(this.project3D(leftFirePoint, cameraPos, cameraRotation));
+                    firePointsRight.push(this.project3D(rightFirePoint, cameraPos, cameraRotation));
+                }
+                
+                // Draw fire trails
+                this.drawFireTrail(leftEngineProjected, firePointsLeft, ship.thrust);
+                this.drawFireTrail(rightEngineProjected, firePointsRight, ship.thrust);
+            }
+
+            drawFireTrail(engineProjected, firePoints, thrustIntensity) {
+                if (!engineProjected.visible) return;
+                
+                // Fire colors from hot to cool
+                const fireColors = ['#ffffff', '#ffff00', '#ff8800', '#ff4400', '#ff0000'];
+                
+                this.ctx.lineWidth = Math.max(3, thrustIntensity * 8);
+                this.ctx.lineCap = 'round';
+                
+                // Draw fire trail segments
+                for (let i = 0; i < firePoints.length; i++) {
+                    const firePoint = firePoints[i];
+                    if (!firePoint.visible) continue;
+                    
+                    // Color intensity decreases with distance
+                    const colorIndex = Math.min(i, fireColors.length - 1);
+                    const alpha = Math.max(0.3, 1 - (i * 0.2));
+                    
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.strokeStyle = fireColors[colorIndex];
+                    
+                    this.ctx.beginPath();
+                    if (i === 0) {
+                        this.ctx.moveTo(engineProjected.x, engineProjected.y);
+                    } else {
+                        this.ctx.moveTo(firePoints[i-1].x, firePoints[i-1].y);
+                    }
+                    this.ctx.lineTo(firePoint.x, firePoint.y);
+                    this.ctx.stroke();
+                }
+                
+                // Reset alpha
+                this.ctx.globalAlpha = 1.0;
+            }
+
+            drawProjectile(projectile, cameraPos, cameraRotation, color) {
+                const currentPos = this.project3D(projectile.position, cameraPos, cameraRotation);
+                
+                if (currentPos.visible) {
+                    // Calculate trail start position (behind the bullet)
+                    const trailStart = projectile.position.subtract(projectile.velocity.normalize().multiply(projectile.length));
+                    const trailProjected = this.project3D(trailStart, cameraPos, cameraRotation);
+                    
+                    this.ctx.strokeStyle = color;
+                    this.ctx.shadowColor = color;
+                    this.ctx.shadowBlur = 8;
+                    this.ctx.lineWidth = Math.max(1, projectile.size + (500 / currentPos.z));
+                    this.ctx.lineCap = 'round';
+                    
+                    // Draw bullet as a line from trail to current position
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(trailProjected.x, trailProjected.y);
+                    this.ctx.lineTo(currentPos.x, currentPos.y);
+                    this.ctx.stroke();
+                    
+                    this.ctx.shadowBlur = 0;
+                }
+            }
+
+            drawPowerUp(powerUp, cameraPos, cameraRotation) {
+                // Add bobbing effect to position
+                const bobPosition = powerUp.position.add(new Vector3D(0, powerUp.getBobOffset(), 0));
+                const projected = this.project3D(bobPosition, cameraPos, cameraRotation);
+                
+                if (projected.visible) {
+                    const scale = Math.max(8, 1000 / projected.z); // Size based on distance
+                    
+                    // Draw outer glow
+                    this.ctx.save();
+                    this.ctx.globalAlpha = 0.3;
+                    this.ctx.fillStyle = '#ff0';
+                    this.ctx.shadowColor = '#ff0';
+                    this.ctx.shadowBlur = 20;
+                    this.ctx.beginPath();
+                    this.ctx.arc(projected.x, projected.y, scale * 1.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Draw main sphere
+                    this.ctx.globalAlpha = 0.8;
+                    this.ctx.fillStyle = '#ffff00';
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.beginPath();
+                    this.ctx.arc(projected.x, projected.y, scale, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Draw "S" letter
+                    this.ctx.globalAlpha = 1.0;
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.shadowBlur = 0;
+                    this.ctx.font = `bold ${Math.max(8, scale * 1.2)}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('S', projected.x, projected.y);
+                    
+                    this.ctx.restore();
+                }
+            }
+
+
+            drawCockpitHUD(color) {
+                this.ctx.strokeStyle = color;
+                this.ctx.fillStyle = color;
+                this.ctx.shadowColor = color;
+                this.ctx.shadowBlur = 3;
+                this.ctx.lineWidth = 2;
+                this.ctx.font = '10px Courier New';
+
+                // Main windshield frame - more realistic shape
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.width * 0.05, this.height * 0.85);
+                this.ctx.lineTo(this.width * 0.15, this.height * 0.25);
+                this.ctx.lineTo(this.width * 0.15, this.height * 0.05);
+                this.ctx.lineTo(this.width * 0.85, this.height * 0.05);
+                this.ctx.lineTo(this.width * 0.85, this.height * 0.25);
+                this.ctx.lineTo(this.width * 0.95, this.height * 0.85);
+                this.ctx.stroke();
+
+                // Control panel at bottom - almost completely translucent
+                this.ctx.save();
+                this.ctx.globalAlpha = 0.1;
+                this.ctx.fillRect(0, this.height * 0.8, this.width, this.height * 0.2);
+                this.ctx.globalAlpha = 0.3;
+                this.ctx.strokeRect(0, this.height * 0.8, this.width, this.height * 0.2);
+                this.ctx.restore();
+
+                // Left instrument cluster
+                this.drawInstrumentPanel(this.width * 0.05, this.height * 0.15, color);
+                
+                // Right instrument cluster  
+                this.drawInstrumentPanel(this.width * 0.75, this.height * 0.15, color);
+
+                // Central HUD elements
+                this.drawCentralHUD(color);
+
+                this.ctx.shadowBlur = 0;
+            }
+
+            drawInstrumentPanel(x, y, color) {
+                this.ctx.strokeStyle = color;
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.lineWidth = 1;
+                
+                // Main panel background
+                this.ctx.fillRect(x, y, 100, 120);
+                this.ctx.strokeRect(x, y, 100, 120);
+
+                // Speed gauge
+                this.ctx.strokeRect(x + 5, y + 5, 40, 40);
+                this.ctx.fillStyle = color;
+                this.ctx.font = '8px Courier New';
+                this.ctx.fillText('SPD', x + 18, y + 20);
+                this.ctx.strokeRect(x + 10, y + 25, 30, 3);
+
+                // Altitude gauge  
+                this.ctx.strokeRect(x + 55, y + 5, 40, 40);
+                this.ctx.fillText('ALT', x + 68, y + 20);
+                this.ctx.strokeRect(x + 60, y + 25, 30, 3);
+
+                // System status lights
+                for (let i = 0; i < 3; i++) {
+                    this.ctx.fillStyle = i === 0 ? '#0f0' : '#333';
+                    this.ctx.fillRect(x + 10 + i * 15, y + 55, 8, 8);
+                    this.ctx.strokeRect(x + 10 + i * 15, y + 55, 8, 8);
+                }
+
+                // Navigation display
+                this.ctx.strokeRect(x + 5, y + 75, 90, 40);
+                this.ctx.fillStyle = color;
+                this.ctx.fillText('NAV', x + 40, y + 90);
+            }
+
+            drawCentralHUD(color) {
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 1;
+
+                // HUD crosshair enhancement
+                const cx = this.centerX;
+                const cy = this.centerY;
+                
+                // Targeting brackets
+                this.ctx.strokeRect(cx - 25, cy - 25, 15, 15);
+                this.ctx.strokeRect(cx + 10, cy - 25, 15, 15);
+                this.ctx.strokeRect(cx - 25, cy + 10, 15, 15);
+                this.ctx.strokeRect(cx + 10, cy + 10, 15, 15);
+
+                // Range finder lines
+                this.ctx.beginPath();
+                this.ctx.moveTo(cx - 50, cy);
+                this.ctx.lineTo(cx - 30, cy);
+                this.ctx.moveTo(cx + 30, cy);
+                this.ctx.lineTo(cx + 50, cy);
+                this.ctx.moveTo(cx, cy - 50);
+                this.ctx.lineTo(cx, cy - 30);
+                this.ctx.moveTo(cx, cy + 30);
+                this.ctx.lineTo(cx, cy + 50);
+                this.ctx.stroke();
+
+                // Threat warning indicators (corners)
+                this.ctx.font = '12px Courier New';
+                this.ctx.fillText('◄', 20, this.centerY);
+                this.ctx.fillText('►', this.width - 30, this.centerY);
+                this.ctx.fillText('▲', this.centerX - 5, 25);
+                this.ctx.fillText('▼', this.centerX - 5, this.height - 10);
+            }
+
+            drawDamageBlink(ship) {
+                if (ship.damageBlinkTimer > 0) {
+                    // Create a pulsing red overlay effect
+                    const intensity = Math.sin(ship.damageBlinkTimer * 0.5) * 0.5 + 0.5; // Oscillate between 0 and 1
+                    const alpha = intensity * 0.3; // Max alpha of 0.3 for visibility
+
+                    this.ctx.save();
+                    this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+                    this.ctx.fillRect(0, 0, this.width, this.height);
+                    this.ctx.restore();
+                }
+            }
+
+            drawRainbowParticle(particle, cameraPos, cameraRotation) {
+                const projected = this.project3D(particle.position, cameraPos, cameraRotation);
+
+                if (projected.visible) {
+                    // Calculate color from hue
+                    const h = particle.hue / 60;
+                    const c = 1;
+                    const x = c * (1 - Math.abs((h % 2) - 1));
+
+                    let r, g, b;
+                    if (h >= 0 && h < 1) { r = c; g = x; b = 0; }
+                    else if (h >= 1 && h < 2) { r = x; g = c; b = 0; }
+                    else if (h >= 2 && h < 3) { r = 0; g = c; b = x; }
+                    else if (h >= 3 && h < 4) { r = 0; g = x; b = c; }
+                    else if (h >= 4 && h < 5) { r = x; g = 0; b = c; }
+                    else { r = c; g = 0; b = x; }
+
+                    r = Math.round(r * 255);
+                    g = Math.round(g * 255);
+                    b = Math.round(b * 255);
+
+                    // Calculate alpha based on particle life
+                    const alpha = particle.life / particle.maxLife;
+
+                    // Draw particle with glow effect
+                    const size = particle.size * (projected.z / 1000 + 0.5);
+
+                    this.ctx.save();
+                    this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                    this.ctx.shadowColor = `rgb(${r}, ${g}, ${b})`;
+                    this.ctx.shadowBlur = size * 2;
+                    this.ctx.beginPath();
+                    this.ctx.arc(projected.x, projected.y, size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.restore();
+                }
+            }
+
+            drawCountdown(text) {
+                this.ctx.save();
+                
+                // Semi-transparent background
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                // Large countdown text
+                this.ctx.fillStyle = '#fff';
+                this.ctx.strokeStyle = '#fff';
+                this.ctx.font = 'bold 120px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.lineWidth = 4;
+                
+                // Draw text with outline for better visibility
+                this.ctx.strokeText(text, this.centerX, this.centerY);
+                this.ctx.fillText(text, this.centerX, this.centerY);
+                
+                // Add glow effect
+                this.ctx.shadowColor = '#fff';
+                this.ctx.shadowBlur = 20;
+                this.ctx.fillText(text, this.centerX, this.centerY);
+                
+                this.ctx.restore();
+            }
+
+            drawExplosion(ship, cameraPos, cameraRotation) {
+                if (ship.exploded && ship.explosionParticles.length > 0) {
+                    ship.explosionParticles.forEach(particle => {
+                        const projected = this.project3D(particle.position, cameraPos, cameraRotation);
+                        
+                        if (projected.visible) {
+                            this.ctx.save();
+                            
+                            // Calculate particle alpha based on life remaining
+                            const alpha = particle.life / 120; // Fade out over time
+                            this.ctx.globalAlpha = alpha;
+                            
+                            // Draw particle as a glowing circle
+                            this.ctx.fillStyle = particle.color;
+                            this.ctx.shadowColor = particle.color;
+                            this.ctx.shadowBlur = particle.size * 2;
+                            
+                            this.ctx.beginPath();
+                            this.ctx.arc(projected.x, projected.y, particle.size, 0, Math.PI * 2);
+                            this.ctx.fill();
+                            
+                            this.ctx.restore();
+                        }
+                    });
+                }
+            }
+
+            drawGhostFish(fish, cameraPos, cameraRotation) {
+                // Transform fish vertices to world space and then to screen space
+                const bodyVertices = fish.getBodyVertices().map(v => 
+                    this.project3D(fish.position.add(v), cameraPos, cameraRotation)
+                );
+                const tailVertices = fish.getTailVertices().map(v => 
+                    this.project3D(fish.position.add(v), cameraPos, cameraRotation)
+                );
+
+                // Check if fish is visible
+                const fishCenter = this.project3D(fish.position, cameraPos, cameraRotation);
+                if (!fishCenter.visible || fishCenter.z > 500) return;
+
+                this.ctx.save();
+
+                // Ghostly appearance - translucent with glow
+                const glowIntensity = fish.getGlowIntensity();
+                this.ctx.globalAlpha = 0.6 * glowIntensity;
+                this.ctx.strokeStyle = `rgba(100, 200, 255, ${0.8 * glowIntensity})`;
+                this.ctx.fillStyle = `rgba(150, 220, 255, ${0.3 * glowIntensity})`;
+                this.ctx.lineWidth = 2;
+                this.ctx.shadowColor = 'rgba(100, 200, 255, 0.8)';
+                this.ctx.shadowBlur = 8;
+
+                // Draw fish body
+                if (bodyVertices.length >= 4) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(bodyVertices[0].x, bodyVertices[0].y); // nose
+                    this.ctx.lineTo(bodyVertices[1].x, bodyVertices[1].y); // left front
+                    this.ctx.lineTo(bodyVertices[3].x, bodyVertices[3].y); // left middle
+                    this.ctx.lineTo(bodyVertices[5].x, bodyVertices[5].y); // left back
+                    this.ctx.lineTo(bodyVertices[7].x, bodyVertices[7].y); // tail base
+                    this.ctx.lineTo(bodyVertices[6].x, bodyVertices[6].y); // right back
+                    this.ctx.lineTo(bodyVertices[4].x, bodyVertices[4].y); // right middle
+                    this.ctx.lineTo(bodyVertices[2].x, bodyVertices[2].y); // right front
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                }
+
+                // Draw animated tail
+                if (tailVertices.length >= 4) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(tailVertices[0].x, tailVertices[0].y); // tail base
+                    this.ctx.lineTo(tailVertices[1].x, tailVertices[1].y); // left fin
+                    this.ctx.lineTo(tailVertices[3].x, tailVertices[3].y); // tail tip
+                    this.ctx.lineTo(tailVertices[2].x, tailVertices[2].y); // right fin
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                }
+
+                // Draw simple eye
+                const eyePos = this.project3D(
+                    fish.position.add(new Vector3D(fish.size * 0.08, fish.size * 0.05, fish.size * 0.15)), 
+                    cameraPos, 
+                    cameraRotation
+                );
+                if (eyePos.visible) {
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * glowIntensity})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(eyePos.x, eyePos.y, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
+                this.ctx.restore();
+            }
+
+            drawAlien(alien, cameraPos, cameraRotation) {
+                const vertices = alien.getVertices().map(v => 
+                    this.project3D(alien.position.add(v), cameraPos, cameraRotation)
+                );
+
+                const alienCenter = this.project3D(alien.position, cameraPos, cameraRotation);
+                if (!alienCenter.visible || alienCenter.z > 400) return;
+
+                this.ctx.save();
+                this.ctx.strokeStyle = '#ff4400';
+                this.ctx.fillStyle = 'rgba(255, 68, 0, 0.3)';
+                this.ctx.lineWidth = 2;
+                this.ctx.shadowColor = '#ff4400';
+                this.ctx.shadowBlur = 6;
+
+                // Draw alien ship wireframe
+                if (vertices.length >= 7) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(vertices[0].x, vertices[0].y); // front tip
+                    this.ctx.lineTo(vertices[1].x, vertices[1].y); // left wing
+                    this.ctx.lineTo(vertices[3].x, vertices[3].y); // top back
+                    this.ctx.lineTo(vertices[2].x, vertices[2].y); // right wing
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.stroke();
+
+                    // Bottom section
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(vertices[0].x, vertices[0].y); // front tip
+                    this.ctx.lineTo(vertices[1].x, vertices[1].y); // left wing
+                    this.ctx.lineTo(vertices[4].x, vertices[4].y); // bottom back
+                    this.ctx.lineTo(vertices[2].x, vertices[2].y); // right wing
+                    this.ctx.closePath();
+                    this.ctx.stroke();
+
+                    // Engine trails
+                    this.ctx.strokeStyle = '#ffaa44';
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(vertices[5].x, vertices[5].y); // left engine
+                    this.ctx.lineTo(vertices[6].x, vertices[6].y); // right engine
+                    this.ctx.stroke();
+                }
+
+                this.ctx.restore();
+            }
+
+            drawAlienExplosion(alien, cameraPos, cameraRotation) {
+                alien.explosionParticles.forEach(particle => {
+                    const projected = this.project3D(particle.position, cameraPos, cameraRotation);
+                    
+                    if (projected.visible) {
+                        this.ctx.save();
+                        
+                        const alpha = particle.life / 80;
+                        this.ctx.globalAlpha = alpha;
+                        this.ctx.fillStyle = particle.color;
+                        this.ctx.shadowColor = particle.color;
+                        this.ctx.shadowBlur = particle.size * 2;
+                        
+                        this.ctx.beginPath();
+                        this.ctx.arc(projected.x, projected.y, particle.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        this.ctx.restore();
+                    }
+                });
+            }
+        }
+
+        // Main 3D Game
+        class Game3D {
+            constructor(gameMode = 'normal') {
+                console.log('Initializing 3D Game...', gameMode);
+                
+                this.gameMode = gameMode;
+                this.canvas1 = document.getElementById('canvas1');
+                this.canvas2 = document.getElementById('canvas2');
+                this.renderer1 = new Renderer3D(this.canvas1);
+                this.renderer2 = new Renderer3D(this.canvas2);
+                
+                this.inputManager = new InputManager();
+                
+                this.ship1 = new Ship3D(-80, 0, 0, 1, gameMode);
+                this.ship2 = new Ship3D(80, 0, 0, 2, gameMode);
+                
+                this.skybox = new Skybox(1200);
+                
+                this.frameCount = 0;
+                this.gameState = 'countdown'; // 'countdown', 'playing', or 'gameOver'
+                this.powerUps = [];
+                this.powerUpSpawnTimer = 0;
+                this.powerUpSpawnInterval = 600; // Spawn every 10 seconds
+                
+                // Ghost fish
+                this.ghostFish = [];
+                this.spawnGhostFish();
+                
+                // Alien invasion mode variables
+                if (this.gameMode === 'alien') {
+                    this.aliens = [];
+                    this.aliensRemaining = 100;
+                    this.alienSpawnTimer = 0;
+                    this.alienSpawnInterval = 60; // Spawn every 1 second
+                    this.spawnInitialAliens();
+                    
+                    // Show alien counter
+                    toggleAlienCounter(true);
+                    updateAlienCounter(this.aliensRemaining);
+                } else {
+                    this.aliens = [];
+                    this.aliensRemaining = 0;
+                    
+                    // Hide alien counter
+                    toggleAlienCounter(false);
+                }
+                
+                // Countdown variables
+                this.countdownTimer = 240; // 4 seconds at 60fps (3, 2, 1, GO!)
+                this.countdownText = '';
+                
+                // Stopwatch variables for alien invasion mode
+                this.gameTimer = 0; // Timer in seconds for alien invasion mode
+                this.gameTimerFrames = 0; // Frame counter for timing
+                
+                // Show/hide stopwatch based on game mode
+                if (this.gameMode === 'alien') {
+                    toggleStopwatch(true);
+                    updateStopwatch(0);
+                } else {
+                    toggleStopwatch(false);
+                }
+                
+                // Music variables
+                this.musicPlaying = false;
+                this.musicContext = null;
+                this.musicTimeoutId = null; // Track timeout ID for proper cleanup
+                this.activeOscillators = []; // Track all active oscillators for cleanup
+                this.currentTrack = 1; // Default to track 1
+                
+                console.log('3D Game components initialized, starting countdown...');
+                this.gameLoop();
+            }
+
+            updateControls() {
+                // Reset thrust
+                this.ship1.thrust = 0;
+                this.ship2.thrust = 0;
+
+                // Reset all indicators
+                document.querySelectorAll('.control-indicator').forEach(el => el.classList.remove('active'));
+
+                // Player 1 controls - Simplified flight controls
+                // W/S = Pitch (tilt up/down)
+                if (this.inputManager.isPressed('w')) {
+                    this.ship1.rotation.x -= this.ship1.rotationSpeed; // Tilt up
+                    document.getElementById('p1-up').classList.add('active');
+                }
+                if (this.inputManager.isPressed('s')) {
+                    this.ship1.rotation.x += this.ship1.rotationSpeed; // Tilt down
+                    document.getElementById('p1-down').classList.add('active');
+                }
+                // A/D and J/L = Turn left/right in world space (like W/S for pitch up/down)
+                if (this.inputManager.isPressed('a') || this.inputManager.isPressed('j')) {
+                    this.ship1.turnLeft(this.ship1.rotationSpeed);
+                    document.getElementById('p1-left').classList.add('active');
+                }
+                if (this.inputManager.isPressed('d') || this.inputManager.isPressed('l')) {
+                    this.ship1.turnRight(this.ship1.rotationSpeed);
+                    document.getElementById('p1-right').classList.add('active');
+                }
+                // I/K = Thrust/Retro
+                if (this.inputManager.isPressed('i')) {
+                    this.ship1.thrust = 1; // Thrust
+                    document.getElementById('p1-thrust').classList.add('active');
+                }
+                if (this.inputManager.isPressed('k')) {
+                    this.ship1.thrust = -0.5; // Retro
+                    document.getElementById('p1-retro').classList.add('active');
+                }
+                // Space = Fire
+                if (this.inputManager.isPressed(' ')) {
+                    this.ship1.fire();
+                    document.getElementById('p1-fire').classList.add('active');
+                }
+
+                // Player 2 controls - Arrow keys and number pad
+                // Up/Down arrows = Pitch
+                if (this.inputManager.isPressed('arrowup')) {
+                    this.ship2.rotation.x -= this.ship2.rotationSpeed; // Tilt up
+                    document.getElementById('p2-up').classList.add('active');
+                }
+                if (this.inputManager.isPressed('arrowdown')) {
+                    this.ship2.rotation.x += this.ship2.rotationSpeed; // Tilt down
+                    document.getElementById('p2-down').classList.add('active');
+                }
+                // Left/Right arrows and 4/6 = Turn left/right in world space
+                if (this.inputManager.isPressed('arrowleft') || this.inputManager.isPressed('4')) {
+                    this.ship2.turnLeft(this.ship2.rotationSpeed);
+                    document.getElementById('p2-left').classList.add('active');
+                }
+                if (this.inputManager.isPressed('arrowright') || this.inputManager.isPressed('6')) {
+                    this.ship2.turnRight(this.ship2.rotationSpeed);
+                    document.getElementById('p2-right').classList.add('active');
+                }
+                // 8/5 = Thrust/Retro
+                if (this.inputManager.isPressed('8')) {
+                    this.ship2.thrust = 1; // Thrust
+                    document.getElementById('p2-thrust').classList.add('active');
+                }
+                if (this.inputManager.isPressed('5')) {
+                    this.ship2.thrust = -0.5; // Retro
+                    document.getElementById('p2-retro').classList.add('active');
+                }
+                // 0 = Fire
+                if (this.inputManager.isPressed('0')) {
+                    this.ship2.fire();
+                    document.getElementById('p2-fire').classList.add('active');
+                }
+            }
+
+            updateHealthDisplay() {
+                // Update health bars
+                const healthBars = ['█', '█', '█', '█', '█'];
+                
+                // Player 1 health
+                const p1HealthText = healthBars.slice(0, this.ship1.lives).join('') + 
+                                   '░'.repeat(this.ship1.maxLives - this.ship1.lives);
+                document.getElementById('p1health').textContent = p1HealthText;
+                
+                // Player 2 health
+                const p2HealthText = healthBars.slice(0, this.ship2.lives).join('') + 
+                                   '░'.repeat(this.ship2.maxLives - this.ship2.lives);
+                document.getElementById('p2health').textContent = p2HealthText;
+            }
+
+            updateRadarIndicators() {
+                // Calculate direction from ship1 to ship2 (relative to ship1's orientation)
+                const p1ToP2 = this.ship2.position.subtract(this.ship1.position);
+                
+                // Transform direction to ship1's local coordinate system
+                // We need to inverse the ship's rotation to get relative direction
+                const localDir1 = this.worldToLocalDirection(p1ToP2, this.ship1.rotation);
+                const angle1 = Math.atan2(localDir1.x, localDir1.z) * 180 / Math.PI;
+                
+                // Calculate direction from ship2 to ship1 (relative to ship2's orientation)  
+                const p2ToP1 = this.ship1.position.subtract(this.ship2.position);
+                const localDir2 = this.worldToLocalDirection(p2ToP1, this.ship2.rotation);
+                const angle2 = Math.atan2(localDir2.x, localDir2.z) * 180 / Math.PI;
+                
+                // Update radar arrows
+                const arrow1 = document.getElementById('p1-radar-arrow');
+                const arrow2 = document.getElementById('p2-radar-arrow');
+                
+                if (arrow1) {
+                    arrow1.style.transform = `translate(-50%, -50%) rotate(${angle1}deg)`;
+                }
+                if (arrow2) {
+                    arrow2.style.transform = `translate(-50%, -50%) rotate(${angle2}deg)`;
+                }
+            }
+
+            worldToLocalDirection(worldDir, shipRotation) {
+                // Transform world direction to ship's local coordinate system
+                // This is a simplified version - rotate by negative ship rotation
+                const cosY = Math.cos(-shipRotation.y);
+                const sinY = Math.sin(-shipRotation.y);
+                
+                return new Vector3D(
+                    worldDir.x * cosY - worldDir.z * sinY,
+                    worldDir.y, // Y stays the same for now (ignoring pitch/roll)
+                    worldDir.x * sinY + worldDir.z * cosY
+                );
+            }
+
+            spawnPowerUp() {
+                // Spawn power-up at random location within the playing field
+                const x = (Math.random() - 0.5) * 1200; // Spread across field
+                const y = (Math.random() - 0.5) * 1200;
+                const z = (Math.random() - 0.5) * 1200;
+                
+                const powerUp = new PowerUp(new Vector3D(x, y, z), 'speed');
+                this.powerUps.push(powerUp);
+                console.log(`Power-up spawned at (${Math.round(x)}, ${Math.round(y)}, ${Math.round(z)})`);
+            }
+
+            spawnGhostFish() {
+                // Spawn several ghost fish throughout the space
+                const fishCount = 8 + Math.random() * 4; // 8-12 fish
+                
+                for (let i = 0; i < fishCount; i++) {
+                    const x = (Math.random() - 0.5) * 1400; // Wider spread than power-ups
+                    const y = (Math.random() - 0.5) * 1400;
+                    const z = (Math.random() - 0.5) * 1400;
+                    
+                    const fish = new GhostFish(new Vector3D(x, y, z));
+                    this.ghostFish.push(fish);
+                }
+                console.log(`Spawned ${fishCount} ghost fish`);
+            }
+
+            spawnInitialAliens() {
+                // Spawn first wave of aliens
+                const initialCount = 10;
+                for (let i = 0; i < initialCount; i++) {
+                    this.spawnAlien();
+                }
+                console.log(`Spawned initial ${initialCount} aliens`);
+            }
+
+            spawnAlien() {
+                if (this.aliensRemaining <= 0) return;
+                
+                // Spawn alien at random location, far from players
+                let x, y, z;
+                do {
+                    x = (Math.random() - 0.5) * 1400;
+                    y = (Math.random() - 0.5) * 1400;
+                    z = (Math.random() - 0.5) * 1400;
+                } while (
+                    (new Vector3D(x, y, z).subtract(this.ship1.position).magnitude() < 200) ||
+                    (new Vector3D(x, y, z).subtract(this.ship2.position).magnitude() < 200)
+                );
+                
+                const alien = new Alien(new Vector3D(x, y, z));
+                this.aliens.push(alien);
+                this.aliensRemaining--;
+                console.log(`Alien spawned, ${this.aliensRemaining} remaining`);
+                
+                // Update alien counter display
+                if (this.gameMode === 'alien') {
+                    const totalAliens = this.aliens.filter(alien => !alien.exploded).length + this.aliensRemaining;
+                    updateAlienCounter(totalAliens);
+                }
+            }
+
+            checkAlienCollisions() {
+                // Check if ship projectiles hit aliens
+                this.aliens.forEach(alien => {
+                    if (alien.exploded) return;
+                    
+                    // Check ship 1 projectiles vs alien
+                    this.ship1.projectiles = this.ship1.projectiles.filter(projectile => {
+                        const distance = projectile.position.subtract(alien.position).magnitude();
+                        if (distance < alien.getCollisionRadius()) {
+                            alien.takeDamage();
+                            return false; // Remove projectile
+                        }
+                        return true; // Keep projectile
+                    });
+                    
+                    // Check ship 2 projectiles vs alien
+                    this.ship2.projectiles = this.ship2.projectiles.filter(projectile => {
+                        const distance = projectile.position.subtract(alien.position).magnitude();
+                        if (distance < alien.getCollisionRadius()) {
+                            alien.takeDamage();
+                            return false; // Remove projectile
+                        }
+                        return true; // Keep projectile
+                    });
+                    
+                    // Check alien collision with ships
+                    const dist1 = alien.position.subtract(this.ship1.position).magnitude();
+                    const dist2 = alien.position.subtract(this.ship2.position).magnitude();
+                    
+                    if (dist1 < (alien.getCollisionRadius() + this.ship1.getCollisionRadius())) {
+                        this.ship1.takeDamage();
+                        alien.takeDamage();
+                        this.updateHealthDisplay();
+                    }
+                    
+                    if (dist2 < (alien.getCollisionRadius() + this.ship2.getCollisionRadius())) {
+                        this.ship2.takeDamage();
+                        alien.takeDamage();
+                        this.updateHealthDisplay();
+                    }
+                });
+                
+                // Update alien counter when aliens are destroyed
+                if (this.gameMode === 'alien') {
+                    const totalAliens = this.aliens.filter(alien => !alien.exploded).length + this.aliensRemaining;
+                    updateAlienCounter(totalAliens);
+                }
+                
+                // Remove dead aliens
+                this.aliens = this.aliens.filter(alien => !alien.exploded || alien.explosionTimer > 0);
+            }
+
+            checkPowerUpCollisions() {
+                this.powerUps = this.powerUps.filter(powerUp => {
+                    const dist1 = powerUp.position.subtract(this.ship1.position).magnitude();
+                    const dist2 = powerUp.position.subtract(this.ship2.position).magnitude();
+                    
+                    if (dist1 < 15) { // Collision with ship 1
+                        this.ship1.activateSpeedBoost();
+                        return false; // Remove power-up
+                    }
+                    if (dist2 < 15) { // Collision with ship 2
+                        this.ship2.activateSpeedBoost();
+                        return false; // Remove power-up
+                    }
+                    return true; // Keep power-up
+                });
+            }
+
+            updateDebugDisplay() {
+                // Player 1 debug info
+                document.getElementById('p1x').textContent = Math.round(this.ship1.position.x);
+                document.getElementById('p1y').textContent = Math.round(this.ship1.position.y);
+                document.getElementById('p1z').textContent = Math.round(this.ship1.position.z);
+                document.getElementById('p1vel').textContent = this.ship1.velocity.magnitude().toFixed(1);
+                document.getElementById('p1shots').textContent = this.ship1.shotCount;
+                
+                // Player 2 debug info
+                document.getElementById('p2x').textContent = Math.round(this.ship2.position.x);
+                document.getElementById('p2y').textContent = Math.round(this.ship2.position.y);
+                document.getElementById('p2z').textContent = Math.round(this.ship2.position.z);
+                document.getElementById('p2vel').textContent = this.ship2.velocity.magnitude().toFixed(1);
+                document.getElementById('p2shots').textContent = this.ship2.shotCount;
+                
+                // Key display
+                const pressedKeys = this.inputManager.getPressedKeys();
+                const keyDisplay = pressedKeys.length > 0 ? pressedKeys.join(', ') : 'NONE';
+                document.getElementById('p1keys').textContent = keyDisplay;
+                document.getElementById('p2keys').textContent = keyDisplay;
+                
+                // Distance
+                const distance = Math.round(this.ship1.distanceTo(this.ship2));
+                document.getElementById('p1dist').textContent = distance;
+                document.getElementById('p2dist').textContent = distance;
+
+                // Mouse aim (for future use)
+                const mouse = this.inputManager.getMousePosition();
+                document.getElementById('p1aim').textContent = `${mouse.x},${mouse.y}`;
+                document.getElementById('p2aim').textContent = `${mouse.x},${mouse.y}`;
+            }
+
+            update() {
+                // Handle countdown phase
+                if (this.gameState === 'countdown') {
+                    this.countdownTimer--;
+                    
+                    if (this.countdownTimer === 180) {
+                        this.countdownText = '3';
+                        this.playCountdownSound(600); // Medium pitch
+                    } else if (this.countdownTimer === 120) {
+                        this.countdownText = '2';
+                        this.playCountdownSound(700); // Higher pitch
+                    } else if (this.countdownTimer === 60) {
+                        this.countdownText = '1';
+                        this.playCountdownSound(800); // Highest pitch
+                    } else if (this.countdownTimer === 30) {
+                        this.countdownText = 'GO!';
+                        this.playGoSound(); // Special GO sound
+                    } else if (this.countdownTimer === 0) {
+                        this.gameState = 'playing';
+                        this.countdownText = '';
+                        this.startGamingMusic(); // Start music when game begins
+                    }
+                    return;
+                }
+                
+                if (this.gameState !== 'playing') return;
+                
+                // Update timer for alien invasion mode
+                if (this.gameMode === 'alien') {
+                    this.gameTimerFrames++;
+                    if (this.gameTimerFrames >= 60) { // 60 frames = 1 second
+                        this.gameTimer++;
+                        this.gameTimerFrames = 0;
+                        updateStopwatch(this.gameTimer);
+                    }
+                }
+
+                this.updateControls();
+                this.ship1.update();
+                this.ship2.update();
+                
+                // Update power-ups
+                this.powerUps = this.powerUps.filter(powerUp => {
+                    powerUp.update();
+                    return !powerUp.isExpired();
+                });
+                
+                // Update ghost fish
+                this.ghostFish.forEach(fish => {
+                    fish.update();
+                });
+
+                // Update aliens in alien invasion mode
+                if (this.gameMode === 'alien') {
+                    this.aliens.forEach(alien => {
+                        alien.update();
+                    });
+                    
+                    // Spawn new aliens periodically
+                    if (this.aliensRemaining > 0) {
+                        this.alienSpawnTimer++;
+                        if (this.alienSpawnTimer >= this.alienSpawnInterval) {
+                            this.spawnAlien();
+                            this.alienSpawnTimer = 0;
+                        }
+                    }
+                }
+                
+                // Spawn new power-ups
+                this.powerUpSpawnTimer++;
+                if (this.powerUpSpawnTimer >= this.powerUpSpawnInterval) {
+                    this.spawnPowerUp();
+                    this.powerUpSpawnTimer = 0;
+                }
+                
+                // Check power-up collisions
+                this.checkPowerUpCollisions();
+                
+                // Check for projectile collisions
+                if (this.gameMode === 'normal') {
+                    // Normal mode: PvP combat
+                    if (this.ship1.checkProjectileCollisions(this.ship2)) {
+                        this.updateHealthDisplay();
+                        if (this.ship2.lives <= 0) {
+                            this.endGame(1);
+                            return;
+                        }
+                    }
+                    
+                    if (this.ship2.checkProjectileCollisions(this.ship1)) {
+                        this.updateHealthDisplay();
+                        if (this.ship1.lives <= 0) {
+                            this.endGame(2);
+                            return;
+                        }
+                    }
+                } else if (this.gameMode === 'alien') {
+                    // Alien invasion mode: cooperative vs aliens
+                    this.checkAlienCollisions();
+                    
+                    // Check if all aliens destroyed (victory)
+                    const livingAliens = this.aliens.filter(alien => !alien.exploded).length;
+                    if (livingAliens === 0 && this.aliensRemaining === 0) {
+                        this.endGame('victory');
+                        return;
+                    }
+                    
+                    // Check if both players dead (defeat)
+                    if (this.ship1.lives <= 0 && this.ship2.lives <= 0) {
+                        this.endGame('defeat');
+                        return;
+                    }
+                }
+                
+                // Check for ship-to-ship collisions (only in normal mode - friendly fire off in alien mode)
+                if (this.gameMode === 'normal') {
+                    const shipDistance = this.ship1.distanceTo(this.ship2);
+                    if (shipDistance < (this.ship1.getCollisionRadius() + this.ship2.getCollisionRadius())) {
+                        this.ship1.takeDamage();
+                        this.ship2.takeDamage();
+                        this.updateHealthDisplay();
+                        
+                        // Push ships apart
+                        const repelForce = this.ship1.position.subtract(this.ship2.position).normalize().multiply(3);
+                        this.ship1.velocity = this.ship1.velocity.add(repelForce);
+                        this.ship2.velocity = this.ship2.velocity.add(repelForce.multiply(-1));
+                        
+                        // Check for deaths after collision
+                        if (this.ship1.lives <= 0 && this.ship2.lives <= 0) {
+                            this.endGame(0); // Draw
+                            return;
+                        } else if (this.ship1.lives <= 0) {
+                            this.endGame(2);
+                            return;
+                        } else if (this.ship2.lives <= 0) {
+                            this.endGame(1);
+                            return;
+                        }
+                    }
+                }
+                
+                this.updateDebugDisplay();
+                this.updateHealthDisplay();
+                this.updateRadarIndicators();
+                
+                this.frameCount++;
+                if (this.frameCount % 60 === 0) {
+                    console.log('3D Game running, frame:', this.frameCount);
+                }
+            }
+
+            render() {
+                // Clear both canvases
+                this.renderer1.clear();
+                this.renderer2.clear();
+                
+                // Camera positions (inside each ship looking forward)
+                const camera1Pos = this.ship1.position.add(this.ship1.getUpVector().multiply(-2));
+                const camera2Pos = this.ship2.position.add(this.ship2.getUpVector().multiply(-2));
+                
+                // Render from ship 1's cockpit
+                this.skybox.render(this.renderer1, camera1Pos, this.ship1.rotation);
+                
+                // Only draw ship 2 if it hasn't exploded
+                if (!this.ship2.exploded) {
+                    const colors = getCurrentColors();
+                    const shipColor = this.ship2.getRainbowColor() || colors.p2.color;
+                    this.renderer1.drawCube(this.ship2, camera1Pos, this.ship1.rotation, shipColor);
+
+                    // Draw rainbow trail particles for ship 2
+                    if (this.ship2.gameMode === 'rainbow') {
+                        this.ship2.trailParticles.forEach(particle => {
+                            this.renderer1.drawRainbowParticle(particle, camera1Pos, this.ship1.rotation);
+                        });
+                    }
+                } else {
+                    // Draw explosion particles for ship 2
+                    this.renderer1.drawExplosion(this.ship2, camera1Pos, this.ship1.rotation);
+                }
+                
+                // Render ship 1's projectiles
+                this.ship1.projectiles.forEach(proj => {
+                    this.renderer1.drawProjectile(proj, camera1Pos, this.ship1.rotation, '#ff0');
+                });
+                
+                // Render ship 2's projectiles
+                this.ship2.projectiles.forEach(proj => {
+                    this.renderer1.drawProjectile(proj, camera1Pos, this.ship1.rotation, '#f80');
+                });
+                
+                // Render from ship 2's cockpit
+                this.skybox.render(this.renderer2, camera2Pos, this.ship2.rotation);
+                
+                // Only draw ship 1 if it hasn't exploded
+                if (!this.ship1.exploded) {
+                    const colors = getCurrentColors();
+                    const shipColor = this.ship1.getRainbowColor() || colors.p1.color;
+                    this.renderer2.drawCube(this.ship1, camera2Pos, this.ship2.rotation, shipColor);
+
+                    // Draw rainbow trail particles for ship 1
+                    if (this.ship1.gameMode === 'rainbow') {
+                        this.ship1.trailParticles.forEach(particle => {
+                            this.renderer2.drawRainbowParticle(particle, camera2Pos, this.ship2.rotation);
+                        });
+                    }
+                } else {
+                    // Draw explosion particles for ship 1
+                    this.renderer2.drawExplosion(this.ship1, camera2Pos, this.ship2.rotation);
+                }
+                
+                // Render ship 2's projectiles
+                this.ship2.projectiles.forEach(proj => {
+                    this.renderer2.drawProjectile(proj, camera2Pos, this.ship2.rotation, '#f80');
+                });
+                
+                // Render ship 1's projectiles
+                this.ship1.projectiles.forEach(proj => {
+                    this.renderer2.drawProjectile(proj, camera2Pos, this.ship2.rotation, '#ff0');
+                });
+                
+                // Render power-ups on both screens
+                this.powerUps.forEach(powerUp => {
+                    this.renderer1.drawPowerUp(powerUp, camera1Pos, this.ship1.rotation);
+                    this.renderer2.drawPowerUp(powerUp, camera2Pos, this.ship2.rotation);
+                });
+                
+                // Render ghost fish on both screens
+                this.ghostFish.forEach(fish => {
+                    this.renderer1.drawGhostFish(fish, camera1Pos, this.ship1.rotation);
+                    this.renderer2.drawGhostFish(fish, camera2Pos, this.ship2.rotation);
+                });
+                
+                // Render aliens in alien invasion mode
+                if (this.gameMode === 'alien') {
+                    this.aliens.forEach(alien => {
+                        if (!alien.exploded) {
+                            this.renderer1.drawAlien(alien, camera1Pos, this.ship1.rotation);
+                            this.renderer2.drawAlien(alien, camera2Pos, this.ship2.rotation);
+                        } else if (alien.explosionParticles.length > 0) {
+                            this.renderer1.drawAlienExplosion(alien, camera1Pos, this.ship1.rotation);
+                            this.renderer2.drawAlienExplosion(alien, camera2Pos, this.ship2.rotation);
+                        }
+                    });
+                }
+                
+                // Draw realistic cockpit HUD
+                const colors = getCurrentColors();
+                this.renderer1.drawCockpitHUD(colors.p1.color);
+                this.renderer2.drawCockpitHUD(colors.p2.color);
+                
+                // Draw damage blink effects
+                this.renderer1.drawDamageBlink(this.ship1);
+                this.renderer2.drawDamageBlink(this.ship2);
+                
+                // Draw countdown overlay
+                if (this.gameState === 'countdown' && this.countdownText) {
+                    this.renderer1.drawCountdown(this.countdownText);
+                    this.renderer2.drawCountdown(this.countdownText);
+                }
+            }
+
+            endGame(winner) {
+                this.gameState = 'gameOver';
+                this.stopGamingMusic(); // Stop music when game ends
+                const gameOverDiv = document.getElementById('gameOver');
+                const winnerText = document.getElementById('winnerText');
+                
+                if (this.gameMode === 'normal') {
+                    // Normal mode endings
+                    if (winner === 0) {
+                        // Draw - both players die, crack both screens
+                        document.getElementById('p1-cracks').classList.add('show');
+                        document.getElementById('p2-cracks').classList.add('show');
+                        winnerText.textContent = 'DRAW! Both pilots eliminated!';
+                    } else if (winner === 1) {
+                        // Player 1 wins, Player 2 dies
+                        document.getElementById('p2-cracks').classList.add('show');
+                        winnerText.textContent = `PLAYER ${winner} WINS!`;
+                    } else if (winner === 2) {
+                        // Player 2 wins, Player 1 dies
+                        document.getElementById('p1-cracks').classList.add('show');
+                        winnerText.textContent = `PLAYER ${winner} WINS!`;
+                    }
+                } else if (this.gameMode === 'alien') {
+                    // Alien invasion mode endings
+                    if (winner === 'victory') {
+                        // Save high score for completion time
+                        saveHighScore(this.gameTimer);
+                        
+                        const timeStr = formatTime(this.gameTimer);
+                        winnerText.textContent = `VICTORY! All aliens eliminated in ${timeStr}! Humanity is saved!`;
+                    } else if (winner === 'defeat') {
+                        document.getElementById('p1-cracks').classList.add('show');
+                        document.getElementById('p2-cracks').classList.add('show');
+                        winnerText.textContent = 'DEFEAT! The alien invasion succeeded...';
+                    }
+                }
+                
+                gameOverDiv.style.display = 'block';
+                console.log(`Game Over: ${winner}`);
+            }
+
+            restart() {
+                this.ship1 = new Ship3D(-80, 0, 0, 1, gameMode);
+                this.ship2 = new Ship3D(80, 0, 0, 2, gameMode);
+                this.gameState = 'countdown'; // Start with countdown again
+                this.powerUps = []; // Clear all power-ups
+                this.powerUpSpawnTimer = 0; // Reset spawn timer
+                
+                // Reset alien invasion mode
+                if (this.gameMode === 'alien') {
+                    this.aliens = [];
+                    this.aliensRemaining = 100;
+                    this.alienSpawnTimer = 0;
+                    this.spawnInitialAliens();
+                    
+                    // Update alien counter display
+                    updateAlienCounter(100);
+                }
+                
+                // Reset countdown
+                this.countdownTimer = 240;
+                this.countdownText = '';
+                
+                // Reset timer for alien invasion mode
+                this.gameTimer = 0;
+                this.gameTimerFrames = 0;
+                if (this.gameMode === 'alien') {
+                    updateStopwatch(0);
+                }
+                
+                // Clear cracked screen effects
+                document.getElementById('p1-cracks').classList.remove('show');
+                document.getElementById('p2-cracks').classList.remove('show');
+                
+                document.getElementById('gameOver').style.display = 'none';
+                this.updateHealthDisplay();
+                console.log('Game restarted with countdown');
+            }
+
+            playCountdownSound(frequency) {
+                // Create simple beep sound for 3, 2, 1
+                console.log(`Playing countdown beep at ${frequency}Hz`);
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('AudioContext state:', audioContext.state);
+                    
+                    // Resume audio context if suspended
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    // Simple beep - square wave for classic beep sound
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.type = 'square';
+                    
+                    // Short beep - quick attack, quick decay, adjusted for volume settings
+                    const effectiveVolume = getEffectiveVolume('sfx');
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(effectiveVolume * 0.3, audioContext.currentTime + 0.01);
+                    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                    console.log('Countdown beep started successfully');
+                } catch (error) {
+                    console.log('Countdown beep error:', error);
+                }
+            }
+
+            playGoSound() {
+                // Create loud beep sound for GO!
+                console.log('Playing GO! loud beep');
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('GO sound AudioContext state:', audioContext.state);
+                    
+                    // Resume audio context if suspended
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    // Loud beep - square wave, higher pitch for excitement
+                    oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+                    oscillator.type = 'square';
+                    
+                    // Longer, louder beep, adjusted for volume settings
+                    const effectiveVolume = getEffectiveVolume('sfx');
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(effectiveVolume * 0.6, audioContext.currentTime + 0.02); // Louder volume
+                    gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.4); // Longer duration
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.4);
+                    console.log('GO! loud beep started successfully');
+                    
+                } catch (error) {
+                    console.log('GO beep error:', error);
+                }
+            }
+
+            startGamingMusic() {
+                if (this.musicPlaying) return;
+                
+                console.log('Starting gaming music');
+                try {
+                    this.musicContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Resume audio context if suspended
+                    if (this.musicContext.state === 'suspended') {
+                        this.musicContext.resume();
+                    }
+                    
+                    this.musicPlaying = true;
+                    this.playGamingTheme();
+                    
+                } catch (error) {
+                    console.log('Music error:', error);
+                }
+            }
+
+            stopGamingMusic() {
+                console.log('stopGamingMusic called - stopping all music');
+                this.musicPlaying = false; // Set this first to stop the loop
+                
+                // Cancel any pending music timeout
+                if (this.musicTimeoutId) {
+                    clearTimeout(this.musicTimeoutId);
+                    this.musicTimeoutId = null;
+                    console.log('Cleared music timeout');
+                }
+                
+                // Stop all active oscillators
+                this.activeOscillators.forEach(oscillator => {
+                    try {
+                        oscillator.stop();
+                        oscillator.disconnect();
+                    } catch (error) {
+                        console.log('Error stopping oscillator:', error);
+                    }
+                });
+                this.activeOscillators = [];
+                console.log('Stopped all oscillators');
+                
+                if (this.musicContext) {
+                    try {
+                        // Suspend and close context
+                        this.musicContext.suspend();
+                        this.musicContext.close();
+                        this.musicContext = null;
+                        console.log('Closed music context');
+                    } catch (error) {
+                        console.log('Error stopping music context:', error);
+                    }
+                }
+                
+                console.log('Gaming music stopped completely');
+            }
+
+            playGamingTheme() {
+                if (!this.musicContext || !this.musicPlaying) return;
+                
+                // Multiple music tracks for selection
+                const musicTracks = {
+                    1: { // 🎵 Classic - Original space combat theme
+                        melody: [
+                            {note: 440, duration: 0.25}, // A
+                            {note: 554, duration: 0.25}, // C#
+                            {note: 659, duration: 0.25}, // E
+                            {note: 784, duration: 0.5},  // G
+                            {note: 659, duration: 0.25}, // E
+                            {note: 554, duration: 0.25}, // C#
+                            {note: 440, duration: 0.5},  // A
+                            {note: 523, duration: 0.25}, // C
+                            {note: 659, duration: 0.25}, // E
+                            {note: 784, duration: 0.25}, // G
+                            {note: 880, duration: 0.5},  // A
+                            {note: 784, duration: 0.25}, // G
+                            {note: 659, duration: 0.25}, // E
+                            {note: 523, duration: 0.5},  // C
+                        ],
+                        waveType: 'sawtooth'
+                    },
+                    2: { // 🔥 Intense - Fast aggressive theme
+                        melody: [
+                            {note: 880, duration: 0.125}, // A
+                            {note: 987, duration: 0.125}, // B
+                            {note: 1108, duration: 0.125}, // C#
+                            {note: 1318, duration: 0.25}, // E
+                            {note: 1108, duration: 0.125}, // C#
+                            {note: 987, duration: 0.125}, // B
+                            {note: 880, duration: 0.25}, // A
+                            {note: 698, duration: 0.125}, // F
+                            {note: 784, duration: 0.125}, // G
+                            {note: 880, duration: 0.125}, // A
+                            {note: 1047, duration: 0.25}, // C
+                            {note: 880, duration: 0.125}, // A
+                            {note: 784, duration: 0.125}, // G
+                            {note: 698, duration: 0.25}, // F
+                            {note: 523, duration: 0.1}, // C
+                            {note: 659, duration: 0.1}, // E
+                            {note: 784, duration: 0.1}, // G
+                            {note: 1047, duration: 0.1}, // C
+                            {note: 1318, duration: 0.2}, // E
+                            {note: 1047, duration: 0.1}, // C
+                            {note: 784, duration: 0.1}, // G
+                            {note: 659, duration: 0.1}, // E
+                            {note: 523, duration: 0.4}, // C (hold)
+                        ],
+                        waveType: 'square'
+                    },
+                    3: { // 🌈 Psychedelic - Rainbow cascading theme
+                        melody: [
+                            {note: 1760, duration: 0.1}, // A (high)
+                            {note: 1568, duration: 0.1}, // G
+                            {note: 1397, duration: 0.1}, // F
+                            {note: 1318, duration: 0.1}, // E
+                            {note: 1175, duration: 0.1}, // D
+                            {note: 1047, duration: 0.1}, // C
+                            {note: 932, duration: 0.1}, // A#
+                            {note: 880, duration: 0.2}, // A
+                            {note: 2093, duration: 0.05}, // C (very high)
+                            {note: 1976, duration: 0.05}, // B
+                            {note: 1760, duration: 0.05}, // A
+                            {note: 1568, duration: 0.05}, // G
+                            {note: 1397, duration: 0.1}, // F
+                            {note: 1318, duration: 0.1}, // E
+                            {note: 1175, duration: 0.3}, // D (hold)
+                            {note: 2637, duration: 0.05}, // E (super high)
+                            {note: 2349, duration: 0.05}, // D
+                            {note: 2093, duration: 0.05}, // C
+                            {note: 1760, duration: 0.05}, // A
+                            {note: 1397, duration: 0.1}, // F
+                            {note: 1047, duration: 0.1}, // C
+                            {note: 784, duration: 0.1}, // G
+                            {note: 523, duration: 0.3}, // C (hold)
+                        ],
+                        waveType: 'triangle'
+                    },
+                    4: { // 🚀 Epic - Heroic space theme
+                        melody: [
+                            {note: 261.63, duration: 0.5}, // C
+                            {note: 329.63, duration: 0.5}, // E
+                            {note: 392.00, duration: 0.5}, // G
+                            {note: 523.25, duration: 1.0}, // C (high)
+                            {note: 493.88, duration: 0.25}, // B
+                            {note: 440.00, duration: 0.25}, // A
+                            {note: 392.00, duration: 0.5}, // G
+                            {note: 329.63, duration: 0.25}, // E
+                            {note: 293.66, duration: 0.25}, // D
+                            {note: 261.63, duration: 0.5}, // C
+                            {note: 293.66, duration: 0.25}, // D
+                            {note: 329.63, duration: 0.25}, // E
+                            {note: 392.00, duration: 0.25}, // G
+                            {note: 523.25, duration: 0.25}, // C
+                            {note: 659.25, duration: 0.5}, // E (high)
+                            {note: 783.99, duration: 0.5}, // G (high)
+                            {note: 1046.50, duration: 1.0}, // C (very high)
+                        ],
+                        waveType: 'sawtooth'
+                    },
+                    5: { // ⚡ Electronic - Synth-style theme
+                        melody: [
+                            {note: 220, duration: 0.25}, // A (low)
+                            {note: 220, duration: 0.25}, // A (low)
+                            {note: 293.66, duration: 0.25}, // D
+                            {note: 293.66, duration: 0.25}, // D
+                            {note: 349.23, duration: 0.25}, // F
+                            {note: 349.23, duration: 0.25}, // F
+                            {note: 440, duration: 0.5}, // A
+                            {note: 466.16, duration: 0.125}, // A#
+                            {note: 523.25, duration: 0.125}, // C
+                            {note: 587.33, duration: 0.125}, // D
+                            {note: 659.25, duration: 0.125}, // E
+                            {note: 698.46, duration: 0.25}, // F
+                            {note: 783.99, duration: 0.25}, // G
+                            {note: 880, duration: 0.5}, // A (high)
+                            {note: 783.99, duration: 0.125}, // G
+                            {note: 698.46, duration: 0.125}, // F
+                            {note: 659.25, duration: 0.125}, // E
+                            {note: 587.33, duration: 0.125}, // D
+                            {note: 523.25, duration: 0.25}, // C
+                            {note: 440, duration: 0.25}, // A
+                            {note: 349.23, duration: 0.5}, // F
+                        ],
+                        waveType: 'square'
+                    }
+                };
+
+                const selectedTrack = musicTracks[this.currentTrack] || musicTracks[1];
+                const selectedMelody = selectedTrack.melody;
+                const waveType = selectedTrack.waveType;
+                
+                let time = this.musicContext.currentTime;
+                
+                selectedMelody.forEach((note, index) => {
+                    if (!this.musicPlaying) return;
+                    
+                    // Create lead melody
+                    const oscillator = this.musicContext.createOscillator();
+                    const gainNode = this.musicContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.musicContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(note.note, time);
+                    oscillator.type = waveType; // Use selected track's wave type
+                    
+                    // Track this oscillator for cleanup
+                    this.activeOscillators.push(oscillator);
+                    
+                    // Dynamic volume adjusted for volume settings
+                    const effectiveVolume = getEffectiveVolume('music');
+                    gainNode.gain.setValueAtTime(0, time);
+                    gainNode.gain.linearRampToValueAtTime(effectiveVolume * 0.08, time + 0.01);
+                    gainNode.gain.linearRampToValueAtTime(0, time + note.duration);
+                    
+                    oscillator.start(time);
+                    oscillator.stop(time + note.duration);
+                    
+                    // Add bass harmony for lower notes
+                    if (note.note < 400) {
+                        const bassOsc = this.musicContext.createOscillator();
+                        const bassGain = this.musicContext.createGain();
+                        
+                        bassOsc.connect(bassGain);
+                        bassGain.connect(this.musicContext.destination);
+                        
+                        bassOsc.frequency.setValueAtTime(note.note * 0.5, time); // Octave lower
+                        bassOsc.type = 'square';
+                        
+                        // Track bass oscillator for cleanup
+                        this.activeOscillators.push(bassOsc);
+                        
+                        bassGain.gain.setValueAtTime(0, time);
+                        bassGain.gain.linearRampToValueAtTime(0.04, time + 0.01);
+                        bassGain.gain.linearRampToValueAtTime(0, time + note.duration);
+                        
+                        bassOsc.start(time);
+                        bassOsc.stop(time + note.duration);
+                    }
+                    
+                    time += note.duration;
+                });
+                
+                // Schedule next loop
+                const totalDuration = selectedMelody.reduce((sum, note) => sum + note.duration, 0);
+                this.musicTimeoutId = setTimeout(() => {
+                    if (this.musicPlaying && this.gameState === 'playing') {
+                        this.playGamingTheme();
+                    }
+                }, totalDuration * 1000);
+            }
+
+            gameLoop() {
+                this.update();
+                this.render();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+
+        // Global restart function for button onclick
+        function restartGame() {
+            // Always clear cracked screen effects when restarting
+            document.getElementById('p1-cracks').classList.remove('show');
+            document.getElementById('p2-cracks').classList.remove('show');
+            
+            if (window.game) {
+                window.game.restart();
+            }
+        }
+        
+        // Function to go back to options menu
+        function backToMenu() {
+            // If game is active, force both players to die to trigger proper game over sequence
+            if (window.game && window.game.gameState === 'playing') {
+                console.log('Forcing game over from back to menu button');
+                window.game.ship1.lives = 0;
+                window.game.ship2.lives = 0;
+                window.game.endGame(0); // Force draw/game over
+                return; // Let the normal game over flow handle the rest
+            }
+            
+            // This handles the case when already in game over state
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('optionsMenu').style.display = 'block';
+            document.getElementById('gameContainer').style.display = 'none';
+            
+            // Clean up any remaining game instance
+            if (window.game) {
+                window.game.stopGamingMusic();
+                window.game = null;
+            }
+            
+            // Hide game controls
+            toggleBackToMenuButton(false);
+            toggleMusicControls(false);
+            
+            // Hide game UI elements
+            toggleAlienCounter(false);
+            toggleStopwatch(false);
+            
+            // Update high scores display when returning to menu
+            updateHighScoreDisplay();
+        }
+        
+        // Function to update alien counter display
+        function updateAlienCounter(aliensRemaining) {
+            const counterEl = document.getElementById('aliensRemaining');
+            if (counterEl) {
+                counterEl.textContent = aliensRemaining;
+            }
+        }
+        
+        // Function to show/hide alien counter based on game mode
+        function toggleAlienCounter(show) {
+            const counterEl = document.getElementById('alienCounter');
+            if (counterEl) {
+                if (show) {
+                    counterEl.classList.remove('hidden');
+                } else {
+                    counterEl.classList.add('hidden');
+                }
+            }
+        }
+        
+        // Function to show/hide stopwatch based on game mode
+        function toggleStopwatch(show) {
+            const stopwatchEl = document.getElementById('stopwatch');
+            if (stopwatchEl) {
+                if (show) {
+                    stopwatchEl.classList.remove('hidden');
+                } else {
+                    stopwatchEl.classList.add('hidden');
+                }
+            }
+        }
+        
+        // Function to show/hide back to menu button
+        function toggleBackToMenuButton(show) {
+            const buttonEl = document.getElementById('backToMenuBtn');
+            if (buttonEl) {
+                if (show) {
+                    buttonEl.classList.remove('hidden');
+                } else {
+                    buttonEl.classList.add('hidden');
+                }
+            }
+        }
+
+        // Function to show/hide music controls
+        function toggleMusicControls(show) {
+            const controlsEl = document.getElementById('musicControls');
+            if (controlsEl) {
+                if (show) {
+                    controlsEl.classList.remove('hidden');
+                } else {
+                    controlsEl.classList.add('hidden');
+                }
+            }
+        }
+
+        // Current music track (0 = off, 1-5 = different tracks)
+        let currentMusicTrack = 1;
+
+        // Function to select music track
+        function selectMusic(trackNumber) {
+            currentMusicTrack = trackNumber;
+
+            // Update button states
+            document.querySelectorAll('.music-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            if (trackNumber === 0) {
+                // Turn off music
+                if (window.game) {
+                    window.game.stopGamingMusic();
+                }
+                document.getElementById('musicBtnOff').classList.add('active');
+            } else {
+                // Select specific track
+                if (window.game) {
+                    window.game.stopGamingMusic();
+                    window.game.currentTrack = trackNumber;
+                    window.game.startGamingMusic();
+                }
+                document.getElementById(`musicBtn${trackNumber}`).classList.add('active');
+            }
+        }
+        
+        // Function to update stopwatch display
+        function updateStopwatch(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            const timeString = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            
+            const timerEl = document.getElementById('timerDisplay');
+            if (timerEl) {
+                timerEl.textContent = timeString;
+            }
+        }
+        
+        // High Score System for Alien Invasion
+        function saveHighScore(timeInSeconds) {
+            try {
+                let highScores = JSON.parse(localStorage.getItem('alienInvasionHighScores')) || [];
+                
+                // Add new score
+                highScores.push(timeInSeconds);
+                
+                // Sort by fastest time (ascending)
+                highScores.sort((a, b) => a - b);
+                
+                // Keep only top 3
+                highScores = highScores.slice(0, 3);
+                
+                localStorage.setItem('alienInvasionHighScores', JSON.stringify(highScores));
+                
+                console.log('High score saved:', timeInSeconds, 'seconds');
+                updateHighScoreDisplay();
+                return true;
+            } catch (error) {
+                console.error('Failed to save high score:', error);
+                return false;
+            }
+        }
+        
+        function getHighScores() {
+            try {
+                return JSON.parse(localStorage.getItem('alienInvasionHighScores')) || [];
+            } catch (error) {
+                console.error('Failed to load high scores:', error);
+                return [];
+            }
+        }
+        
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
+        function updateHighScoreDisplay() {
+            const highScores = getHighScores();
+            
+            for (let i = 1; i <= 3; i++) {
+                const scoreEl = document.getElementById(`highScore${i}`);
+                if (scoreEl) {
+                    if (highScores[i - 1] !== undefined) {
+                        scoreEl.textContent = formatTime(highScores[i - 1]);
+                    } else {
+                        scoreEl.textContent = '--:--';
+                    }
+                }
+            }
+        }
+
+        // Global ship color settings
+        let currentColorScheme = 0;
+        const colorSchemes = [
+            { p1: { color: '#0f0', name: 'Green' }, p2: { color: '#f0f', name: 'Magenta' } },
+            { p1: { color: '#0ff', name: 'Cyan' }, p2: { color: '#ff0', name: 'Yellow' } },
+            { p1: { color: '#f80', name: 'Orange' }, p2: { color: '#00f', name: 'Blue' } },
+            { p1: { color: '#fff', name: 'White' }, p2: { color: '#888', name: 'Gray' } }
+        ];
+        
+        function cycleShipColors() {
+            currentColorScheme = (currentColorScheme + 1) % colorSchemes.length;
+            updateColorDisplay();
+        }
+        
+        function updateColorDisplay() {
+            const scheme = colorSchemes[currentColorScheme];
+            document.getElementById('p1ColorName').textContent = scheme.p1.name;
+            document.getElementById('p2ColorName').textContent = scheme.p2.name;
+        }
+        
+        function getCurrentColors() {
+            return colorSchemes[currentColorScheme];
+        }
+
+        // Volume control system
+        let volumeSettings = {
+            master: 50,
+            sfx: 50,
+            music: 50
+        };
+
+        // Load volume settings from localStorage
+        function loadVolumeSettings() {
+            try {
+                const saved = localStorage.getItem('spacefighter_volume');
+                if (saved) {
+                    volumeSettings = { ...volumeSettings, ...JSON.parse(saved) };
+                }
+            } catch (error) {
+                console.log('Could not load volume settings:', error);
+            }
+            updateVolumeDisplay();
+        }
+
+        // Save volume settings to localStorage
+        function saveVolumeSettings() {
+            try {
+                localStorage.setItem('spacefighter_volume', JSON.stringify(volumeSettings));
+            } catch (error) {
+                console.log('Could not save volume settings:', error);
+            }
+        }
+
+        // Update volume display values
+        function updateVolumeDisplay() {
+            document.getElementById('masterVolume').value = volumeSettings.master;
+            document.getElementById('masterVolumeValue').textContent = volumeSettings.master + '%';
+            document.getElementById('sfxVolume').value = volumeSettings.sfx;
+            document.getElementById('sfxVolumeValue').textContent = volumeSettings.sfx + '%';
+            document.getElementById('musicVolume').value = volumeSettings.music;
+            document.getElementById('musicVolumeValue').textContent = volumeSettings.music + '%';
+        }
+
+        // Get effective volume for audio (combines master with specific type)
+        function getEffectiveVolume(type) {
+            const masterVol = volumeSettings.master / 100;
+            const typeVol = volumeSettings[type] / 100;
+            return masterVol * typeVol;
+        }
+
+        // Initialize volume controls
+        function initVolumeControls() {
+            const masterSlider = document.getElementById('masterVolume');
+            const sfxSlider = document.getElementById('sfxVolume');
+            const musicSlider = document.getElementById('musicVolume');
+
+            masterSlider.addEventListener('input', function() {
+                volumeSettings.master = parseInt(this.value);
+                document.getElementById('masterVolumeValue').textContent = this.value + '%';
+                saveVolumeSettings();
+            });
+
+            sfxSlider.addEventListener('input', function() {
+                volumeSettings.sfx = parseInt(this.value);
+                document.getElementById('sfxVolumeValue').textContent = this.value + '%';
+                saveVolumeSettings();
+            });
+
+            musicSlider.addEventListener('input', function() {
+                volumeSettings.music = parseInt(this.value);
+                document.getElementById('musicVolumeValue').textContent = this.value + '%';
+                saveVolumeSettings();
+            });
+        }
+        
+        // Global start game function for options menu
+        function startGame(mode) {
+            console.log('Starting game with mode:', mode);
+            
+            // Clean up any existing game instance first
+            if (window.game) {
+                window.game.stopGamingMusic();
+                window.game.gameState = 'stopped';
+                window.game = null;
+            }
+            
+            // Always clear cracked screen effects when starting new game
+            document.getElementById('p1-cracks').classList.remove('show');
+            document.getElementById('p2-cracks').classList.remove('show');
+            
+            // Hide options menu
+            document.getElementById('optionsMenu').style.display = 'none';
+            
+            // Show game controls during gameplay
+            toggleBackToMenuButton(true);
+            toggleMusicControls(true);
+
+            // Start the game with selected mode
+            window.game = new Game3D(mode);
+            
+            // Initialize audio on any user interaction
+            document.addEventListener('keydown', initAudioContext, { once: true });
+            document.addEventListener('click', initAudioContext, { once: true });
+        }
+
+        // Initialize audio context on first user interaction
+        let audioContextInitialized = false;
+        function initAudioContext() {
+            if (!audioContextInitialized) {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    // Play a silent sound to unlock audio
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.01);
+                    audioContextInitialized = true;
+                    console.log('Audio context initialized');
+                } catch (error) {
+                    console.log('Audio context failed to initialize:', error);
+                }
+            }
+        }
+
+        // Show options menu when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, showing options menu...');
+            // Load and display high scores
+            updateHighScoreDisplay();
+
+            // Initialize color display
+            updateColorDisplay();
+
+            // Initialize volume controls
+            loadVolumeSettings();
+            initVolumeControls();
+            
+            // Ensure no music is playing when menu loads
+            if (window.game) {
+                window.game.stopGamingMusic();
+            }
+            // Options menu is shown by default, no need to start game yet
+        });
+
+        console.log('3D Script loaded successfully');
+    </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Debug Test</title>
+    <style>
+        body {
+            background: black;
+            color: lime;
+            font-family: monospace;
+            padding: 20px;
+        }
+        .test-area {
+            border: 1px solid lime;
+            padding: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Input Debug Test</h1>
+    
+    <div class="test-area">
+        <h2>Raw Key Events</h2>
+        <div id="raw-keys">Press any key...</div>
+    </div>
+    
+    <div class="test-area">
+        <h2>Input Manager Test</h2>
+        <div id="input-manager-keys">No keys detected...</div>
+    </div>
+    
+    <div class="test-area">
+        <h2>Game Controls Test</h2>
+        <div>Player 1 - W: <span id="w-key">false</span></div>
+        <div>Player 1 - A: <span id="a-key">false</span></div>
+        <div>Player 1 - S: <span id="s-key">false</span></div>
+        <div>Player 1 - D: <span id="d-key">false</span></div>
+        <div>Player 2 - Up: <span id="up-key">false</span></div>
+        <div>Player 2 - Down: <span id="down-key">false</span></div>
+    </div>
+
+    <script>
+        // Raw key event test
+        document.addEventListener('keydown', (e) => {
+            document.getElementById('raw-keys').textContent = `Key Down: ${e.key} (${e.code})`;
+            console.log('Raw keydown:', e.key, e.code);
+        });
+
+        document.addEventListener('keyup', (e) => {
+            document.getElementById('raw-keys').textContent = `Key Up: ${e.key} (${e.code})`;
+            console.log('Raw keyup:', e.key, e.code);
+        });
+
+        // InputManager test
+        class TestInputManager {
+            constructor() {
+                this.keys = {};
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                document.addEventListener('keydown', (e) => {
+                    console.log('InputManager keydown:', e.key, e.key.toLowerCase());
+                    this.keys[e.key.toLowerCase()] = true;
+                    this.updateDisplay();
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    console.log('InputManager keyup:', e.key, e.key.toLowerCase());
+                    this.keys[e.key.toLowerCase()] = false;
+                    this.updateDisplay();
+                });
+            }
+
+            isPressed(key) {
+                return !!this.keys[key.toLowerCase()];
+            }
+
+            updateDisplay() {
+                const pressedKeys = Object.keys(this.keys).filter(key => this.keys[key]);
+                document.getElementById('input-manager-keys').textContent = 
+                    pressedKeys.length > 0 ? `Pressed: ${pressedKeys.join(', ')}` : 'No keys pressed';
+                
+                // Update specific key tests
+                document.getElementById('w-key').textContent = this.isPressed('w');
+                document.getElementById('a-key').textContent = this.isPressed('a');
+                document.getElementById('s-key').textContent = this.isPressed('s');
+                document.getElementById('d-key').textContent = this.isPressed('d');
+                document.getElementById('up-key').textContent = this.isPressed('arrowup');
+                document.getElementById('down-key').textContent = this.isPressed('arrowdown');
+            }
+        }
+
+        const inputManager = new TestInputManager();
+        console.log('Input test initialized');
+    </script>
+</body>
+</html>

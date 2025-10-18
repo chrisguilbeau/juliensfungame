@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/cg/Library/Mobile Documents/com~apple~CloudDocs/src/3dspace/**)",
+      "Read(//Users/cg/Library/Mobile Documents/com~apple~CloudDocs/src/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

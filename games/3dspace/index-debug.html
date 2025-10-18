@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Fighter - Debug</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="player1-section">
+            <div class="hud">
+                <div class="life-meter">
+                    <span>Player 1 Lives:</span>
+                    <div class="lives">
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                    </div>
+                </div>
+                <div class="controls-info">
+                    <div>WASD: Move | DEBUG MODE</div>
+                </div>
+            </div>
+            <canvas id="player1-canvas" width="640" height="480"></canvas>
+            <div class="crosshair" id="crosshair1">+</div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="player2-section">
+            <div class="hud">
+                <div class="life-meter">
+                    <span>Player 2 Lives:</span>
+                    <div class="lives">
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                        <span class="life active">■</span>
+                    </div>
+                </div>
+                <div class="controls-info">
+                    <div>Arrow Keys: Move | DEBUG MODE</div>
+                </div>
+            </div>
+            <canvas id="player2-canvas" width="640" height="480"></canvas>
+            <div class="crosshair" id="crosshair2">+</div>
+        </div>
+    </div>
+    
+    <script src="vector3d.js"></script>
+    <script src="controls.js"></script>
+    <script src="debug-simple.js"></script>
+</body>
+</html>
